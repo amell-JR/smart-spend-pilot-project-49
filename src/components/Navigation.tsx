@@ -1,7 +1,7 @@
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BarChart3, CreditCard, Target, PieChart } from "lucide-react";
+import { BarChart3, CreditCard, Target } from "lucide-react";
 
 interface NavigationProps {
   activeView: string;
@@ -9,16 +9,16 @@ interface NavigationProps {
 }
 
 export const Navigation = ({ activeView, onViewChange }: NavigationProps) => {
-  const menuItems = [
+  const navItems = [
     { id: "dashboard", label: "Dashboard", icon: BarChart3 },
     { id: "expenses", label: "Expenses", icon: CreditCard },
-    { id: "budgets", label: "Budgets", icon: Target }
+    { id: "budgets", label: "Budgets", icon: Target },
   ];
 
   return (
-    <Card className="p-6 bg-white/60 backdrop-blur-sm border-slate-200 shadow-lg">
+    <Card className="p-4 bg-white/60 backdrop-blur-sm">
       <nav className="space-y-2">
-        {menuItems.map((item) => {
+        {navItems.map((item) => {
           const Icon = item.icon;
           return (
             <Button
@@ -26,8 +26,8 @@ export const Navigation = ({ activeView, onViewChange }: NavigationProps) => {
               variant={activeView === item.id ? "default" : "ghost"}
               className={`w-full justify-start ${
                 activeView === item.id 
-                  ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md" 
-                  : "hover:bg-slate-100"
+                  ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white" 
+                  : "hover:bg-blue-50"
               }`}
               onClick={() => onViewChange(item.id)}
             >

@@ -1,8 +1,21 @@
-
 import { Card } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, DollarSign, Calendar } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
-import type { Expense, Budget } from "@/pages/Index";
+
+interface Expense {
+  id: string;
+  description: string;
+  amount: number;
+  date: string;
+  category: string;
+  notes?: string;
+}
+
+interface Budget {
+  category: string;
+  amount: number;
+  spent: number;
+}
 
 interface DashboardProps {
   expenses: Expense[];

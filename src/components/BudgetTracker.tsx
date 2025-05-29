@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,7 +6,12 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Edit2, Check, X, TrendingUp, AlertTriangle } from "lucide-react";
-import type { Budget } from "@/pages/Index";
+
+interface Budget {
+  category: string;
+  amount: number;
+  spent: number;
+}
 
 interface BudgetTrackerProps {
   budgets: Budget[];

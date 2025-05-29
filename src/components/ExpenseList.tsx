@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,7 +5,15 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Trash2, Search, Filter } from "lucide-react";
-import type { Expense } from "@/pages/Index";
+
+interface Expense {
+  id: string;
+  description: string;
+  amount: number;
+  date: string;
+  category: string;
+  notes?: string;
+}
 
 interface ExpenseListProps {
   expenses: Expense[];
