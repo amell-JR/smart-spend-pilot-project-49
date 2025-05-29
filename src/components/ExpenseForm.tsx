@@ -17,27 +17,15 @@ interface ExpenseFormProps {
     notes?: string;
   }) => void;
   onCancel: () => void;
+  categories: string[];
 }
 
-export const ExpenseForm = ({ onSubmit, onCancel }: ExpenseFormProps) => {
+export const ExpenseForm = ({ onSubmit, onCancel, categories }: ExpenseFormProps) => {
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [category, setCategory] = useState("");
   const [notes, setNotes] = useState("");
-
-  const categories = [
-    "Food & Dining",
-    "Transportation",
-    "Shopping",
-    "Entertainment",
-    "Bills & Utilities",
-    "Healthcare",
-    "Travel",
-    "Education",
-    "Business",
-    "Other"
-  ];
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

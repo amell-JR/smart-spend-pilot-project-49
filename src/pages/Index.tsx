@@ -1,109 +1,119 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, TrendingUp, TrendingDown, DollarSign } from "lucide-react";
+import { Plus, DollarSign, LogOut } from "lucide-react";
 import { ExpenseForm } from "@/components/ExpenseForm";
 import { ExpenseList } from "@/components/ExpenseList";
 import { Dashboard } from "@/components/Dashboard";
 import { BudgetTracker } from "@/components/BudgetTracker";
 import { Navigation } from "@/components/Navigation";
-
-export interface Expense {
-  id: string;
-  description: string;
-  amount: number;
-  date: string;
-  category: string;
-  notes?: string;
-}
-
-export interface Budget {
-  category: string;
-  amount: number;
-  spent: number;
-}
+import { useAuth } from "@/hooks/useAuth";
+import { useExpenses } from "@/hooks/useExpenses";
+import { useCategories } from "@/hooks/useCategories";
+import { useBudgets } from "@/hooks/useBudgets";
+import { useNavigate } from "react-router-dom";
 
 const Index = () => {
   const [activeView, setActiveView] = useState("dashboard");
   const [showExpenseForm, setShowExpenseForm] = useState(false);
-  const [expenses, setExpenses] = useState<Expense[]>([
-    {
-      id: "1",
-      description: "Grocery Shopping",
-      amount: 85.50,
-      date: "2025-05-28",
-      category: "Food & Dining",
-      notes: "Weekly groceries"
-    },
-    {
-      id: "2", 
-      description: "Gas Station",
-      amount: 45.00,
-      date: "2025-05-27",
-      category: "Transportation"
-    },
-    {
-      id: "3",
-      description: "Coffee Shop",
-      amount: 4.75,
-      date: "2025-05-27",
-      category: "Food & Dining"
+  
+  const { user, loading: authLoading, signOut } = useAuth();
+  const { expenses, addExpense, deleteExpense, loading: expensesLoading } = useExpenses();
+  const { categories, loading: categoriesLoading } = useCategories();
+  const { budgets, updateBudget, loading: budgetsLoading } = useBudgets();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/auth');
     }
-  ]);
+  }, [user, authLoading, navigate]);
 
-  const [budgets, setBudgets] = useState<Budget[]>([
-    { category: "Food & Dining", amount: 400, spent: 90.25 },
-    { category: "Transportation", amount: 200, spent: 45.00 },
-    { category: "Entertainment", amount: 150, spent: 0 },
-    { category: "Shopping", amount: 300, spent: 0 }
-  ]);
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center mx-auto mb-4">
+            <DollarSign className="w-8 h-8 text-white" />
+          </div>
+          <p className="text-lg text-gray-600">Loading SpendWise...</p>
+        </div>
+      </div>
+    );
+  }
 
-  const addExpense = (expense: Omit<Expense, "id">) => {
-    const newExpense = {
-      ...expense,
-      id: Date.now().toString()
-    };
-    setExpenses(prev => [newExpense, ...prev]);
-    
-    // Update budget spent amounts
-    setBudgets(prev => prev.map(budget => 
-      budget.category === expense.category 
-        ? { ...budget, spent: budget.spent + expense.amount }
-        : budget
-    ));
-    
-    setShowExpenseForm(false);
-  };
+  if (!user) {
+    return null;
+  }
 
-  const deleteExpense = (id: string) => {
-    const expense = expenses.find(e => e.id === id);
-    if (expense) {
-      setExpenses(prev => prev.filter(e => e.id !== id));
-      setBudgets(prev => prev.map(budget => 
-        budget.category === expense.category 
-          ? { ...budget, spent: Math.max(0, budget.spent - expense.amount) }
-          : budget
-      ));
+  const handleAddExpense = async (expense: {
+    description: string;
+    amount: number;
+    date: string;
+    category: string;
+    notes?: string;
+  }) => {
+    const category = categories.find(c => c.name === expense.category);
+    if (!category) return;
+
+    try {
+      await addExpense({
+        description: expense.description,
+        amount: expense.amount,
+        date: expense.date,
+        category_id: category.id,
+        notes: expense.notes
+      });
+      setShowExpenseForm(false);
+    } catch (error) {
+      console.error('Error adding expense:', error);
     }
   };
 
-  const updateBudget = (category: string, amount: number) => {
-    setBudgets(prev => prev.map(budget => 
-      budget.category === category 
-        ? { ...budget, amount }
-        : budget
-    ));
+  const handleUpdateBudget = async (categoryName: string, amount: number) => {
+    const category = categories.find(c => c.name === categoryName);
+    if (!category) return;
+
+    try {
+      await updateBudget(category.id, amount);
+    } catch (error) {
+      console.error('Error updating budget:', error);
+    }
   };
+
+  // Transform data for components
+  const transformedExpenses = expenses.map(expense => ({
+    id: expense.id,
+    description: expense.description,
+    amount: Number(expense.amount),
+    date: expense.date,
+    category: expense.categories?.name || 'Unknown',
+    notes: expense.notes
+  }));
+
+  const transformedBudgets = budgets.map(budget => ({
+    category: budget.categories?.name || 'Unknown',
+    amount: Number(budget.amount),
+    spent: budget.spent || 0
+  }));
 
   const renderContent = () => {
+    if (expensesLoading || categoriesLoading || budgetsLoading) {
+      return (
+        <div className="flex items-center justify-center py-12">
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      );
+    }
+
     switch (activeView) {
       case "expenses":
-        return <ExpenseList expenses={expenses} onDeleteExpense={deleteExpense} />;
+        return <ExpenseList expenses={transformedExpenses} onDeleteExpense={deleteExpense} />;
       case "budgets":
-        return <BudgetTracker budgets={budgets} onUpdateBudget={updateBudget} />;
+        return <BudgetTracker budgets={transformedBudgets} onUpdateBudget={handleUpdateBudget} />;
       default:
-        return <Dashboard expenses={expenses} budgets={budgets} />;
+        return <Dashboard expenses={transformedExpenses} budgets={transformedBudgets} />;
     }
   };
 
@@ -121,13 +131,25 @@ const Index = () => {
                 SpendWise
               </h1>
             </div>
-            <Button 
-              onClick={() => setShowExpenseForm(true)}
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Expense
-            </Button>
+            
+            <div className="flex items-center gap-3">
+              <Button 
+                onClick={() => setShowExpenseForm(true)}
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Expense
+              </Button>
+              
+              <Button
+                variant="ghost"
+                onClick={signOut}
+                className="text-gray-600 hover:text-gray-800"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Sign Out
+              </Button>
+            </div>
           </div>
         </div>
       </header>
@@ -149,8 +171,9 @@ const Index = () => {
       {/* Expense Form Modal */}
       {showExpenseForm && (
         <ExpenseForm 
-          onSubmit={addExpense}
+          onSubmit={handleAddExpense}
           onCancel={() => setShowExpenseForm(false)}
+          categories={categories.map(c => c.name)}
         />
       )}
     </div>
