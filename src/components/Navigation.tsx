@@ -2,6 +2,7 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { BarChart3, CreditCard, Target, Settings } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 interface NavigationProps {
   activeView: string;
@@ -17,7 +18,11 @@ export const Navigation = ({ activeView, onViewChange }: NavigationProps) => {
   ];
 
   return (
-    <Card className="p-4 bg-white/60 backdrop-blur-sm">
+    <Card className="p-4 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Navigation</h2>
+        <ThemeToggle />
+      </div>
       <nav className="space-y-2">
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -28,7 +33,7 @@ export const Navigation = ({ activeView, onViewChange }: NavigationProps) => {
               className={`w-full justify-start ${
                 activeView === item.id 
                   ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white" 
-                  : "hover:bg-blue-50"
+                  : "hover:bg-blue-50 dark:hover:bg-slate-700"
               }`}
               onClick={() => onViewChange(item.id)}
             >
