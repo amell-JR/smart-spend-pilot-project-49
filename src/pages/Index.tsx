@@ -7,12 +7,15 @@ import { ExpenseForm } from "@/components/ExpenseForm";
 import { ExpenseList } from "@/components/ExpenseList";
 import { Dashboard } from "@/components/Dashboard";
 import { BudgetTracker } from "@/components/BudgetTracker";
+import { Settings } from "@/components/Settings";
 import { Navigation } from "@/components/Navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useCategories } from "@/hooks/useCategories";
 import { useBudgets } from "@/hooks/useBudgets";
+import { useProfile } from "@/hooks/useProfile";
 import { useNavigate } from "react-router-dom";
+import { formatCurrency } from "@/utils/currency";
 
 const Index = () => {
   const [activeView, setActiveView] = useState("dashboard");
@@ -22,6 +25,7 @@ const Index = () => {
   const { expenses, addExpense, deleteExpense, loading: expensesLoading } = useExpenses();
   const { categories, loading: categoriesLoading } = useCategories();
   const { budgets, updateBudget, loading: budgetsLoading } = useBudgets();
+  const { profile, loading: profileLoading } = useProfile();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -30,7 +34,7 @@ const Index = () => {
     }
   }, [user, authLoading, navigate]);
 
-  if (authLoading) {
+  if (authLoading || profileLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
         <div className="text-center">
@@ -53,6 +57,7 @@ const Index = () => {
     date: string;
     category: string;
     notes?: string;
+    currency_id: string;
   }) => {
     const category = categories.find(c => c.name === expense.category);
     if (!category) return;
@@ -63,6 +68,7 @@ const Index = () => {
         amount: expense.amount,
         date: expense.date,
         category_id: category.id,
+        currency_id: expense.currency_id,
         notes: expense.notes
       });
       setShowExpenseForm(false);
@@ -73,29 +79,31 @@ const Index = () => {
 
   const handleUpdateBudget = async (categoryName: string, amount: number) => {
     const category = categories.find(c => c.name === categoryName);
-    if (!category) return;
+    if (!category || !profile?.currency_id) return;
 
     try {
-      await updateBudget(category.id, amount);
+      await updateBudget(category.id, amount, profile.currency_id);
     } catch (error) {
       console.error('Error updating budget:', error);
     }
   };
 
-  // Transform data for components
+  // Transform data for components with currency formatting
   const transformedExpenses = expenses.map(expense => ({
     id: expense.id,
     description: expense.description,
     amount: Number(expense.amount),
     date: expense.date,
     category: expense.categories?.name || 'Unknown',
-    notes: expense.notes
+    notes: expense.notes,
+    currency: expense.currencies
   }));
 
   const transformedBudgets = budgets.map(budget => ({
     category: budget.categories?.name || 'Unknown',
     amount: Number(budget.amount),
-    spent: budget.spent || 0
+    spent: budget.spent || 0,
+    currency: budget.currencies
   }));
 
   const renderContent = () => {
@@ -112,6 +120,8 @@ const Index = () => {
         return <ExpenseList expenses={transformedExpenses} onDeleteExpense={deleteExpense} />;
       case "budgets":
         return <BudgetTracker budgets={transformedBudgets} onUpdateBudget={handleUpdateBudget} />;
+      case "settings":
+        return <Settings />;
       default:
         return <Dashboard expenses={transformedExpenses} budgets={transformedBudgets} />;
     }
@@ -130,6 +140,11 @@ const Index = () => {
               <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                 SpendWise
               </h1>
+              {profile?.currencies && (
+                <span className="text-sm text-gray-500 ml-2">
+                  ({profile.currencies.code})
+                </span>
+              )}
             </div>
             
             <div className="flex items-center gap-3">

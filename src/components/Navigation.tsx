@@ -1,7 +1,7 @@
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BarChart3, CreditCard, Target } from "lucide-react";
+import { BarChart3, CreditCard, Target, Settings } from "lucide-react";
 
 interface NavigationProps {
   activeView: string;
@@ -13,6 +13,7 @@ export const Navigation = ({ activeView, onViewChange }: NavigationProps) => {
     { id: "dashboard", label: "Dashboard", icon: BarChart3 },
     { id: "expenses", label: "Expenses", icon: CreditCard },
     { id: "budgets", label: "Budgets", icon: Target },
+    { id: "settings", label: "Settings", icon: Settings },
   ];
 
   return (

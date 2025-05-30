@@ -8,12 +8,19 @@ export interface Budget {
   user_id: string;
   category_id: string;
   amount: number;
+  currency_id: string;
   period: string;
   created_at: string;
   updated_at: string;
   categories?: {
     name: string;
     color: string;
+  };
+  currencies?: {
+    code: string;
+    name: string;
+    symbol: string;
+    decimal_places: number;
   };
   spent?: number;
 }
@@ -32,7 +39,8 @@ export const useBudgets = () => {
         .from('budgets')
         .select(`
           *,
-          categories(name, color)
+          categories(name, color),
+          currencies(code, name, symbol, decimal_places)
         `);
 
       if (error) throw error;
@@ -59,7 +67,7 @@ export const useBudgets = () => {
     }
   };
 
-  const updateBudget = async (categoryId: string, amount: number) => {
+  const updateBudget = async (categoryId: string, amount: number, currencyId: string) => {
     if (!user) return;
 
     try {
@@ -69,11 +77,13 @@ export const useBudgets = () => {
           user_id: user.id,
           category_id: categoryId,
           amount: amount,
+          currency_id: currencyId,
           period: 'monthly'
         })
         .select(`
           *,
-          categories(name, color)
+          categories(name, color),
+          currencies(code, name, symbol, decimal_places)
         `)
         .single();
 

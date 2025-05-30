@@ -10,6 +10,7 @@ export interface Expense {
   amount: number;
   date: string;
   category_id: string;
+  currency_id: string;
   notes?: string;
   receipt_url?: string;
   created_at: string;
@@ -17,6 +18,12 @@ export interface Expense {
   categories?: {
     name: string;
     color: string;
+  };
+  currencies?: {
+    code: string;
+    name: string;
+    symbol: string;
+    decimal_places: number;
   };
 }
 
@@ -34,7 +41,8 @@ export const useExpenses = () => {
         .from('expenses')
         .select(`
           *,
-          categories(name, color)
+          categories(name, color),
+          currencies(code, name, symbol, decimal_places)
         `)
         .order('date', { ascending: false });
 
@@ -52,6 +60,7 @@ export const useExpenses = () => {
     amount: number;
     date: string;
     category_id: string;
+    currency_id: string;
     notes?: string;
   }) => {
     if (!user) return;
@@ -65,7 +74,8 @@ export const useExpenses = () => {
         }])
         .select(`
           *,
-          categories(name, color)
+          categories(name, color),
+          currencies(code, name, symbol, decimal_places)
         `)
         .single();
 

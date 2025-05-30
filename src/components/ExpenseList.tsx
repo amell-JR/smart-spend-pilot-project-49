@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -5,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Trash2, Search, Filter } from "lucide-react";
+import { formatCurrency } from "@/utils/currency";
 
 interface Expense {
   id: string;
@@ -13,6 +15,12 @@ interface Expense {
   date: string;
   category: string;
   notes?: string;
+  currency?: {
+    code: string;
+    name: string;
+    symbol: string;
+    decimal_places: number;
+  };
 }
 
 interface ExpenseListProps {
@@ -95,7 +103,12 @@ export const ExpenseList = ({ expenses, onDeleteExpense }: ExpenseListProps) => 
             Showing {filteredAndSortedExpenses.length} of {expenses.length} expenses
           </p>
           <p className="text-sm font-medium">
-            Total: <span className="text-lg">${totalFiltered.toFixed(2)}</span>
+            Total: <span className="text-lg">
+              {filteredAndSortedExpenses.length > 0 && filteredAndSortedExpenses[0].currency 
+                ? formatCurrency(totalFiltered, filteredAndSortedExpenses[0].currency)
+                : `$${totalFiltered.toFixed(2)}`
+              }
+            </span>
           </p>
         </div>
       </Card>
@@ -111,6 +124,11 @@ export const ExpenseList = ({ expenses, onDeleteExpense }: ExpenseListProps) => 
                   <Badge variant="secondary" className="text-xs">
                     {expense.category}
                   </Badge>
+                  {expense.currency && expense.currency.code !== 'USD' && (
+                    <Badge variant="outline" className="text-xs">
+                      {expense.currency.code}
+                    </Badge>
+                  )}
                 </div>
                 <div className="flex items-center gap-4 text-sm text-gray-600">
                   <span>{new Date(expense.date).toLocaleDateString()}</span>
@@ -123,7 +141,12 @@ export const ExpenseList = ({ expenses, onDeleteExpense }: ExpenseListProps) => 
               </div>
               
               <div className="flex items-center gap-3">
-                <span className="text-lg font-semibold">${expense.amount.toFixed(2)}</span>
+                <span className="text-lg font-semibold">
+                  {expense.currency 
+                    ? formatCurrency(expense.amount, expense.currency)
+                    : `$${expense.amount.toFixed(2)}`
+                  }
+                </span>
                 <Button
                   variant="ghost"
                   size="sm"

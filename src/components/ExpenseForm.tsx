@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { X } from "lucide-react";
+import { useProfile } from "@/hooks/useProfile";
+import { formatCurrency } from "@/utils/currency";
 
 interface ExpenseFormProps {
   onSubmit: (expense: {
@@ -15,12 +17,14 @@ interface ExpenseFormProps {
     date: string;
     category: string;
     notes?: string;
+    currency_id: string;
   }) => void;
   onCancel: () => void;
   categories: string[];
 }
 
 export const ExpenseForm = ({ onSubmit, onCancel, categories }: ExpenseFormProps) => {
+  const { profile } = useProfile();
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -29,16 +33,19 @@ export const ExpenseForm = ({ onSubmit, onCancel, categories }: ExpenseFormProps
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!description || !amount || !category) return;
+    if (!description || !amount || !category || !profile?.currency_id) return;
 
     onSubmit({
       description,
       amount: parseFloat(amount),
       date,
       category,
-      notes: notes || undefined
+      notes: notes || undefined,
+      currency_id: profile.currency_id
     });
   };
+
+  const currencySymbol = profile?.currencies?.symbol || '$';
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
@@ -63,17 +70,30 @@ export const ExpenseForm = ({ onSubmit, onCancel, categories }: ExpenseFormProps
           </div>
 
           <div>
-            <Label htmlFor="amount">Amount</Label>
-            <Input
-              id="amount"
-              type="number"
-              step="0.01"
-              min="0"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="0.00"
-              required
-            />
+            <Label htmlFor="amount">
+              Amount ({currencySymbol})
+            </Label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                {currencySymbol}
+              </span>
+              <Input
+                id="amount"
+                type="number"
+                step="0.01"
+                min="0"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="0.00"
+                className="pl-8"
+                required
+              />
+            </div>
+            {amount && profile?.currencies && (
+              <p className="text-sm text-gray-500 mt-1">
+                {formatCurrency(parseFloat(amount) || 0, profile.currencies)}
+              </p>
+            )}
           </div>
 
           <div>
