@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Trash2, Search, Filter } from "lucide-react";
 import { formatCurrency } from "@/utils/currency";
+import { useProfile } from "@/hooks/useProfile";
 
 interface Expense {
   id: string;
@@ -29,6 +30,7 @@ interface ExpenseListProps {
 }
 
 export const ExpenseList = ({ expenses, onDeleteExpense }: ExpenseListProps) => {
+  const { profile } = useProfile();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
   const [sortBy, setSortBy] = useState("date");
@@ -54,10 +56,13 @@ export const ExpenseList = ({ expenses, onDeleteExpense }: ExpenseListProps) => 
 
   const totalFiltered = filteredAndSortedExpenses.reduce((sum, expense) => sum + expense.amount, 0);
 
+  // Use profile currency as fallback
+  const defaultCurrency = profile?.currencies || { symbol: '$', decimal_places: 2 };
+
   return (
     <div className="space-y-6">
       {/* Filters and Search */}
-      <Card className="p-6 bg-white/60 backdrop-blur-sm">
+      <Card className="p-6 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1">
             <div className="relative">
@@ -99,15 +104,12 @@ export const ExpenseList = ({ expenses, onDeleteExpense }: ExpenseListProps) => 
         </div>
 
         <div className="mt-4 flex justify-between items-center">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-600 dark:text-gray-300">
             Showing {filteredAndSortedExpenses.length} of {expenses.length} expenses
           </p>
-          <p className="text-sm font-medium">
+          <p className="text-sm font-medium dark:text-white">
             Total: <span className="text-lg">
-              {filteredAndSortedExpenses.length > 0 && filteredAndSortedExpenses[0].currency 
-                ? formatCurrency(totalFiltered, filteredAndSortedExpenses[0].currency)
-                : `$${totalFiltered.toFixed(2)}`
-              }
+              {formatCurrency(totalFiltered, defaultCurrency)}
             </span>
           </p>
         </div>
@@ -116,24 +118,24 @@ export const ExpenseList = ({ expenses, onDeleteExpense }: ExpenseListProps) => 
       {/* Expense List */}
       <div className="space-y-3">
         {filteredAndSortedExpenses.map((expense) => (
-          <Card key={expense.id} className="p-4 bg-white/60 backdrop-blur-sm hover:bg-white/80 transition-colors">
+          <Card key={expense.id} className="p-4 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm hover:bg-white/80 dark:hover:bg-slate-700/60 transition-colors">
             <div className="flex items-center justify-between">
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2">
-                  <h3 className="font-medium">{expense.description}</h3>
+                  <h3 className="font-medium dark:text-white">{expense.description}</h3>
                   <Badge variant="secondary" className="text-xs">
                     {expense.category}
                   </Badge>
-                  {expense.currency && expense.currency.code !== 'USD' && (
+                  {expense.currency && expense.currency.code !== profile?.currencies?.code && (
                     <Badge variant="outline" className="text-xs">
                       {expense.currency.code}
                     </Badge>
                   )}
                 </div>
-                <div className="flex items-center gap-4 text-sm text-gray-600">
+                <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-300">
                   <span>{new Date(expense.date).toLocaleDateString()}</span>
                   {expense.notes && (
-                    <span className="text-gray-500 truncate max-w-xs">
+                    <span className="text-gray-500 dark:text-gray-400 truncate max-w-xs">
                       {expense.notes}
                     </span>
                   )}
@@ -141,17 +143,17 @@ export const ExpenseList = ({ expenses, onDeleteExpense }: ExpenseListProps) => 
               </div>
               
               <div className="flex items-center gap-3">
-                <span className="text-lg font-semibold">
+                <span className="text-lg font-semibold dark:text-white">
                   {expense.currency 
                     ? formatCurrency(expense.amount, expense.currency)
-                    : `$${expense.amount.toFixed(2)}`
+                    : formatCurrency(expense.amount, defaultCurrency)
                   }
                 </span>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => onDeleteExpense(expense.id)}
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>
@@ -161,8 +163,8 @@ export const ExpenseList = ({ expenses, onDeleteExpense }: ExpenseListProps) => 
         ))}
 
         {filteredAndSortedExpenses.length === 0 && (
-          <Card className="p-8 bg-white/60 backdrop-blur-sm text-center">
-            <p className="text-gray-500">No expenses found matching your criteria.</p>
+          <Card className="p-8 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm text-center">
+            <p className="text-gray-500 dark:text-gray-400">No expenses found matching your criteria.</p>
           </Card>
         )}
       </div>

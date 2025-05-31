@@ -2,6 +2,8 @@
 import { Card } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, DollarSign, Calendar } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
+import { useProfile } from "@/hooks/useProfile";
+import { formatCurrency } from "@/utils/currency";
 
 interface Expense {
   id: string;
@@ -29,6 +31,8 @@ interface DashboardProps {
 }
 
 export const Dashboard = ({ expenses = [], budgets = [] }: DashboardProps) => {
+  const { profile } = useProfile();
+  
   // Calculate current month totals
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
@@ -41,6 +45,9 @@ export const Dashboard = ({ expenses = [], budgets = [] }: DashboardProps) => {
   const totalSpent = currentMonthExpenses.reduce((sum, expense) => sum + expense.amount, 0);
   const totalBudget = budgets.reduce((sum, budget) => sum + budget.amount, 0);
   const remainingBudget = totalBudget - totalSpent;
+
+  // Use profile currency as default
+  const defaultCurrency = profile?.currencies || { symbol: '$', decimal_places: 2 };
 
   // Prepare data for charts
   const categoryData = budgets.map(budget => ({
@@ -61,6 +68,23 @@ export const Dashboard = ({ expenses = [], budgets = [] }: DashboardProps) => {
 
   const recentExpenses = expenses.slice(0, 5);
 
+  // Custom tooltip for charts that uses the user's currency
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white dark:bg-slate-800 p-3 border border-gray-200 dark:border-slate-600 rounded-lg shadow-lg">
+          <p className="font-medium dark:text-white">{label}</p>
+          {payload.map((entry: any, index: number) => (
+            <p key={index} style={{ color: entry.color }} className="text-sm">
+              {entry.name}: {formatCurrency(entry.value, defaultCurrency)}
+            </p>
+          ))}
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="space-y-6">
       {/* Overview Cards */}
@@ -69,7 +93,9 @@ export const Dashboard = ({ expenses = [], budgets = [] }: DashboardProps) => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Total Spent This Month</p>
-              <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">${totalSpent.toFixed(2)}</p>
+              <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
+                {formatCurrency(totalSpent, defaultCurrency)}
+              </p>
             </div>
             <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
               <TrendingUp className="w-6 h-6 text-white" />
@@ -81,7 +107,9 @@ export const Dashboard = ({ expenses = [], budgets = [] }: DashboardProps) => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-green-600 dark:text-green-400">Remaining Budget</p>
-              <p className="text-2xl font-bold text-green-900 dark:text-green-100">${remainingBudget.toFixed(2)}</p>
+              <p className="text-2xl font-bold text-green-900 dark:text-green-100">
+                {formatCurrency(remainingBudget, defaultCurrency)}
+              </p>
             </div>
             <div className="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center">
               <DollarSign className="w-6 h-6 text-white" />
@@ -93,7 +121,9 @@ export const Dashboard = ({ expenses = [], budgets = [] }: DashboardProps) => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-purple-600 dark:text-purple-400">Total Budget</p>
-              <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">${totalBudget.toFixed(2)}</p>
+              <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">
+                {formatCurrency(totalBudget, defaultCurrency)}
+              </p>
             </div>
             <div className="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center">
               <Calendar className="w-6 h-6 text-white" />
@@ -124,7 +154,7 @@ export const Dashboard = ({ expenses = [], budgets = [] }: DashboardProps) => {
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value) => [`$${value}`, "Amount"]} />
+                <Tooltip content={<CustomTooltip />} />
               </PieChart>
             </ResponsiveContainer>
           ) : (
@@ -149,7 +179,7 @@ export const Dashboard = ({ expenses = [], budgets = [] }: DashboardProps) => {
                 className="dark:fill-gray-300"
               />
               <YAxis className="dark:fill-gray-300" />
-              <Tooltip formatter={(value) => [`$${value}`, ""]} />
+              <Tooltip content={<CustomTooltip />} />
               <Bar dataKey="budget" fill="#e2e8f0" name="Budget" />
               <Bar dataKey="spent" fill="#3b82f6" name="Spent" />
             </BarChart>
@@ -167,7 +197,9 @@ export const Dashboard = ({ expenses = [], budgets = [] }: DashboardProps) => {
                 <p className="font-medium dark:text-white">{expense.description}</p>
                 <p className="text-sm text-gray-600 dark:text-gray-300">{expense.category} • {expense.date}</p>
               </div>
-              <p className="font-semibold text-lg dark:text-white">${expense.amount.toFixed(2)}</p>
+              <p className="font-semibold text-lg dark:text-white">
+                {formatCurrency(expense.amount, defaultCurrency)}
+              </p>
             </div>
           ))}
           {recentExpenses.length === 0 && (
