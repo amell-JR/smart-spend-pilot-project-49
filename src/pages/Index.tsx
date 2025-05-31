@@ -28,16 +28,43 @@ const Index = () => {
     return null;
   }
 
+  // Transform expenses data to match component interface
+  const transformedExpenses = (expenses || []).map(expense => ({
+    id: expense.id,
+    description: expense.description,
+    amount: expense.amount,
+    date: expense.date,
+    category: expense.categories?.name || 'Unknown',
+    notes: expense.notes,
+    currency: expense.currencies
+  }));
+
+  // Transform budgets data to match component interface
+  const transformedBudgets = (budgets || []).map(budget => ({
+    category: budget.categories?.name || 'Unknown',
+    amount: budget.amount,
+    spent: budget.spent || 0
+  }));
+
+  // Wrapper function to handle budget updates
+  const handleUpdateBudget = async (category: string, amount: number) => {
+    // Find the category_id and currency_id from the original budgets data
+    const originalBudget = budgets?.find(b => b.categories?.name === category);
+    if (originalBudget) {
+      await updateBudget(originalBudget.category_id!, amount, originalBudget.currency_id);
+    }
+  };
+
   const renderContent = () => {
     switch (activeView) {
       case "expenses":
-        return <ExpenseList expenses={expenses || []} onDeleteExpense={deleteExpense} />;
+        return <ExpenseList expenses={transformedExpenses} onDeleteExpense={deleteExpense} />;
       case "budgets":
-        return <BudgetTracker budgets={budgets || []} onUpdateBudget={updateBudget} />;
+        return <BudgetTracker budgets={transformedBudgets} onUpdateBudget={handleUpdateBudget} />;
       case "settings":
         return <Settings />;
       default:
-        return <Dashboard expenses={expenses || []} budgets={budgets || []} />;
+        return <Dashboard expenses={transformedExpenses} budgets={transformedBudgets} />;
     }
   };
 
