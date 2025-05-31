@@ -39,8 +39,17 @@ const Index = () => {
     currency: expense.currencies
   }));
 
-  // Transform budgets data to match component interface
-  const transformedBudgets = (budgets || []).map(budget => ({
+  // Transform budgets data to match Dashboard component interface
+  const transformedBudgetsForDashboard = (budgets || []).map(budget => ({
+    id: budget.id,
+    category_id: budget.category_id || '',
+    amount: budget.amount,
+    spent: budget.spent || 0,
+    categories: budget.categories
+  }));
+
+  // Transform budgets data to match BudgetTracker component interface
+  const transformedBudgetsForTracker = (budgets || []).map(budget => ({
     category: budget.categories?.name || 'Unknown',
     amount: budget.amount,
     spent: budget.spent || 0
@@ -60,11 +69,11 @@ const Index = () => {
       case "expenses":
         return <ExpenseList expenses={transformedExpenses} onDeleteExpense={deleteExpense} />;
       case "budgets":
-        return <BudgetTracker budgets={transformedBudgets} onUpdateBudget={handleUpdateBudget} />;
+        return <BudgetTracker budgets={transformedBudgetsForTracker} onUpdateBudget={handleUpdateBudget} />;
       case "settings":
         return <Settings />;
       default:
-        return <Dashboard expenses={transformedExpenses} budgets={transformedBudgets} />;
+        return <Dashboard expenses={transformedExpenses} budgets={transformedBudgetsForDashboard} />;
     }
   };
 
