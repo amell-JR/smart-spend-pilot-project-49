@@ -30,7 +30,7 @@ interface ExpenseListProps {
 }
 
 export const ExpenseList = ({ expenses, onDeleteExpense }: ExpenseListProps) => {
-  const { profile } = useProfile();
+  const { profile, loading: profileLoading } = useProfile();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
   const [sortBy, setSortBy] = useState("date");
@@ -56,8 +56,31 @@ export const ExpenseList = ({ expenses, onDeleteExpense }: ExpenseListProps) => 
 
   const totalFiltered = filteredAndSortedExpenses.reduce((sum, expense) => sum + expense.amount, 0);
 
-  // Use profile currency as fallback
-  const defaultCurrency = profile?.currencies || { symbol: '$', decimal_places: 2 };
+  // Don't render currency-dependent content until profile is loaded
+  if (profileLoading) {
+    return (
+      <div className="space-y-6">
+        <Card className="p-6 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm">
+          <div className="animate-pulse">
+            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mb-4"></div>
+            <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded"></div>
+          </div>
+        </Card>
+        <div className="space-y-3">
+          {[...Array(3)].map((_, i) => (
+            <Card key={i} className="p-4 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm">
+              <div className="animate-pulse">
+                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2"></div>
+                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  const userCurrency = profile?.currencies || { symbol: '$', decimal_places: 2 };
 
   return (
     <div className="space-y-6">
@@ -109,7 +132,7 @@ export const ExpenseList = ({ expenses, onDeleteExpense }: ExpenseListProps) => 
           </p>
           <p className="text-sm font-medium dark:text-white">
             Total: <span className="text-lg">
-              {formatCurrency(totalFiltered, defaultCurrency)}
+              {formatCurrency(totalFiltered, userCurrency)}
             </span>
           </p>
         </div>
@@ -146,7 +169,7 @@ export const ExpenseList = ({ expenses, onDeleteExpense }: ExpenseListProps) => 
                 <span className="text-lg font-semibold dark:text-white">
                   {expense.currency 
                     ? formatCurrency(expense.amount, expense.currency)
-                    : formatCurrency(expense.amount, defaultCurrency)
+                    : formatCurrency(expense.amount, userCurrency)
                   }
                 </span>
                 <Button

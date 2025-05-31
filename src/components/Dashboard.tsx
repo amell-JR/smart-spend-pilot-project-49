@@ -31,7 +31,7 @@ interface DashboardProps {
 }
 
 export const Dashboard = ({ expenses = [], budgets = [] }: DashboardProps) => {
-  const { profile } = useProfile();
+  const { profile, loading: profileLoading } = useProfile();
   
   // Calculate current month totals
   const currentMonth = new Date().getMonth();
@@ -46,8 +46,38 @@ export const Dashboard = ({ expenses = [], budgets = [] }: DashboardProps) => {
   const totalBudget = budgets.reduce((sum, budget) => sum + budget.amount, 0);
   const remainingBudget = totalBudget - totalSpent;
 
-  // Use profile currency as default
-  const defaultCurrency = profile?.currencies || { symbol: '$', decimal_places: 2 };
+  // Show loading state while profile is loading
+  if (profileLoading) {
+    return (
+      <div className="space-y-6">
+        {/* Loading Overview Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[...Array(3)].map((_, i) => (
+            <Card key={i} className="p-6 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20">
+              <div className="animate-pulse">
+                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-2"></div>
+                <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        {/* Loading Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {[...Array(2)].map((_, i) => (
+            <Card key={i} className="p-6 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm">
+              <div className="animate-pulse">
+                <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mb-4"></div>
+                <div className="h-[300px] bg-gray-200 dark:bg-gray-700 rounded"></div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  const userCurrency = profile?.currencies || { symbol: '$', decimal_places: 2 };
 
   // Prepare data for charts
   const categoryData = budgets.map(budget => ({
@@ -76,7 +106,7 @@ export const Dashboard = ({ expenses = [], budgets = [] }: DashboardProps) => {
           <p className="font-medium dark:text-white">{label}</p>
           {payload.map((entry: any, index: number) => (
             <p key={index} style={{ color: entry.color }} className="text-sm">
-              {entry.name}: {formatCurrency(entry.value, defaultCurrency)}
+              {entry.name}: {formatCurrency(entry.value, userCurrency)}
             </p>
           ))}
         </div>
@@ -94,7 +124,7 @@ export const Dashboard = ({ expenses = [], budgets = [] }: DashboardProps) => {
             <div>
               <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Total Spent This Month</p>
               <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
-                {formatCurrency(totalSpent, defaultCurrency)}
+                {formatCurrency(totalSpent, userCurrency)}
               </p>
             </div>
             <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
@@ -108,7 +138,7 @@ export const Dashboard = ({ expenses = [], budgets = [] }: DashboardProps) => {
             <div>
               <p className="text-sm font-medium text-green-600 dark:text-green-400">Remaining Budget</p>
               <p className="text-2xl font-bold text-green-900 dark:text-green-100">
-                {formatCurrency(remainingBudget, defaultCurrency)}
+                {formatCurrency(remainingBudget, userCurrency)}
               </p>
             </div>
             <div className="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center">
@@ -122,7 +152,7 @@ export const Dashboard = ({ expenses = [], budgets = [] }: DashboardProps) => {
             <div>
               <p className="text-sm font-medium text-purple-600 dark:text-purple-400">Total Budget</p>
               <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">
-                {formatCurrency(totalBudget, defaultCurrency)}
+                {formatCurrency(totalBudget, userCurrency)}
               </p>
             </div>
             <div className="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center">
@@ -198,7 +228,7 @@ export const Dashboard = ({ expenses = [], budgets = [] }: DashboardProps) => {
                 <p className="text-sm text-gray-600 dark:text-gray-300">{expense.category} • {expense.date}</p>
               </div>
               <p className="font-semibold text-lg dark:text-white">
-                {formatCurrency(expense.amount, defaultCurrency)}
+                {formatCurrency(expense.amount, userCurrency)}
               </p>
             </div>
           ))}

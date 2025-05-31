@@ -22,7 +22,7 @@ interface BudgetTrackerProps {
 }
 
 export const BudgetTracker = ({ budgets, onUpdateBudget }: BudgetTrackerProps) => {
-  const { profile } = useProfile();
+  const { profile, loading: profileLoading } = useProfile();
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [editAmount, setEditAmount] = useState("");
 
@@ -52,12 +52,37 @@ export const BudgetTracker = ({ budgets, onUpdateBudget }: BudgetTrackerProps) =
     return { status: "good", color: "text-green-600", bgColor: "bg-green-50 dark:bg-green-900/20" };
   };
 
+  // Don't render currency-dependent content until profile is loaded
+  if (profileLoading) {
+    return (
+      <div className="space-y-6">
+        <Card className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20">
+          <div className="animate-pulse">
+            <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mb-4"></div>
+            <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mb-3"></div>
+            <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded mb-2"></div>
+          </div>
+        </Card>
+        <div className="space-y-4">
+          {[...Array(3)].map((_, i) => (
+            <Card key={i} className="p-6">
+              <div className="animate-pulse">
+                <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mb-4"></div>
+                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded mb-3"></div>
+                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   const totalBudget = budgets.reduce((sum, budget) => sum + budget.amount, 0);
   const totalSpent = budgets.reduce((sum, budget) => sum + budget.spent, 0);
   const overallPercentage = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
 
-  // Use profile currency as default
-  const defaultCurrency = profile?.currencies || { symbol: '$', decimal_places: 2 };
+  const userCurrency = profile?.currencies || { symbol: '$', decimal_places: 2 };
 
   return (
     <div className="space-y-6">
@@ -68,15 +93,15 @@ export const BudgetTracker = ({ budgets, onUpdateBudget }: BudgetTrackerProps) =
           <div className="text-right">
             <p className="text-sm text-gray-600 dark:text-gray-300">Total Budget</p>
             <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
-              {formatCurrency(totalBudget, defaultCurrency)}
+              {formatCurrency(totalBudget, userCurrency)}
             </p>
           </div>
         </div>
         
         <div className="space-y-3">
           <div className="flex justify-between text-sm dark:text-gray-300">
-            <span>Spent: {formatCurrency(totalSpent, defaultCurrency)}</span>
-            <span>Remaining: {formatCurrency(totalBudget - totalSpent, defaultCurrency)}</span>
+            <span>Spent: {formatCurrency(totalSpent, userCurrency)}</span>
+            <span>Remaining: {formatCurrency(totalBudget - totalSpent, userCurrency)}</span>
           </div>
           <Progress value={overallPercentage} className="h-3" />
           <p className="text-sm text-gray-600 dark:text-gray-300 text-center">
@@ -142,7 +167,7 @@ export const BudgetTracker = ({ budgets, onUpdateBudget }: BudgetTrackerProps) =
                   ) : (
                     <>
                       <span className="font-semibold text-lg dark:text-white">
-                        {formatCurrency(budget.amount, defaultCurrency)}
+                        {formatCurrency(budget.amount, userCurrency)}
                       </span>
                       <Button
                         size="sm"
@@ -160,10 +185,10 @@ export const BudgetTracker = ({ budgets, onUpdateBudget }: BudgetTrackerProps) =
               <div className="space-y-3">
                 <div className="flex justify-between text-sm">
                   <span className={`${budgetStatus.color} dark:text-opacity-90`}>
-                    Spent: {formatCurrency(budget.spent, defaultCurrency)}
+                    Spent: {formatCurrency(budget.spent, userCurrency)}
                   </span>
                   <span className={`${remaining >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
-                    {remaining >= 0 ? "Remaining" : "Over"}: {formatCurrency(Math.abs(remaining), defaultCurrency)}
+                    {remaining >= 0 ? "Remaining" : "Over"}: {formatCurrency(Math.abs(remaining), userCurrency)}
                   </span>
                 </div>
                 
