@@ -1,6 +1,8 @@
 
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useExpenses } from "@/hooks/useExpenses";
+import { useBudgets } from "@/hooks/useBudgets";
 import { Navigation } from "@/components/Navigation";
 import { Dashboard } from "@/components/Dashboard";
 import { ExpenseList } from "@/components/ExpenseList";
@@ -9,11 +11,13 @@ import { Settings } from "@/components/Settings";
 
 const Index = () => {
   const { user, loading } = useAuth();
+  const { expenses, loading: expensesLoading, deleteExpense } = useExpenses();
+  const { budgets, loading: budgetsLoading, updateBudget } = useBudgets();
   const [activeView, setActiveView] = useState("dashboard");
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center transition-colors duration-300">
         <div className="text-xl text-gray-600 dark:text-gray-300">Loading...</div>
       </div>
     );
@@ -27,13 +31,13 @@ const Index = () => {
   const renderContent = () => {
     switch (activeView) {
       case "expenses":
-        return <ExpenseList />;
+        return <ExpenseList expenses={expenses || []} onDeleteExpense={deleteExpense} />;
       case "budgets":
-        return <BudgetTracker />;
+        return <BudgetTracker budgets={budgets || []} onUpdateBudget={updateBudget} />;
       case "settings":
         return <Settings />;
       default:
-        return <Dashboard />;
+        return <Dashboard expenses={expenses || []} budgets={budgets || []} />;
     }
   };
 
