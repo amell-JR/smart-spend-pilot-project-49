@@ -24,7 +24,11 @@ export const useProfile = () => {
   const { user } = useAuth();
 
   const fetchProfile = async () => {
-    if (!user) return;
+    if (!user) {
+      setProfile(null);
+      setLoading(false);
+      return;
+    }
     
     setLoading(true);
     try {
@@ -37,10 +41,14 @@ export const useProfile = () => {
         .eq('id', user.id)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching profile:', error);
+        throw error;
+      }
       setProfile(data);
     } catch (error) {
       console.error('Error fetching profile:', error);
+      setProfile(null);
     } finally {
       setLoading(false);
     }
@@ -52,7 +60,10 @@ export const useProfile = () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .update(updates)
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', user.id)
         .select(`
           *,
@@ -60,7 +71,11 @@ export const useProfile = () => {
         `)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating profile:', error);
+        throw error;
+      }
+      
       setProfile(data);
       return data;
     } catch (error) {

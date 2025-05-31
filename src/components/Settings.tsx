@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -17,11 +17,28 @@ export const Settings = () => {
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
   
-  const [fullName, setFullName] = useState(profile?.full_name || "");
-  const [selectedCurrency, setSelectedCurrency] = useState(profile?.currency_id || "");
+  const [fullName, setFullName] = useState("");
+  const [selectedCurrency, setSelectedCurrency] = useState("");
   const [saving, setSaving] = useState(false);
 
+  // Update local state when profile data loads
+  useEffect(() => {
+    if (profile) {
+      setFullName(profile.full_name || "");
+      setSelectedCurrency(profile.currency_id || "");
+    }
+  }, [profile]);
+
   const handleSave = async () => {
+    if (!selectedCurrency) {
+      toast({
+        title: "Error",
+        description: "Please select a currency.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSaving(true);
     try {
       await updateProfile({
@@ -34,6 +51,7 @@ export const Settings = () => {
         description: "Your preferences have been updated successfully.",
       });
     } catch (error) {
+      console.error('Error saving settings:', error);
       toast({
         title: "Error",
         description: "Failed to save settings. Please try again.",
@@ -185,7 +203,7 @@ export const Settings = () => {
       <div className="flex justify-end">
         <Button 
           onClick={handleSave}
-          disabled={saving}
+          disabled={saving || !selectedCurrency}
           className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
         >
           <Save className="w-4 h-4 mr-2" />

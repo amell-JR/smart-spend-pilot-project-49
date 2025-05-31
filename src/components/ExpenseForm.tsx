@@ -49,9 +49,9 @@ export const ExpenseForm = ({ onSubmit, onCancel, categories }: ExpenseFormProps
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-md p-6 bg-white">
+      <Card className="w-full max-w-md p-6 bg-white dark:bg-slate-800">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold">Add New Expense</h2>
+          <h2 className="text-xl font-semibold dark:text-white">Add New Expense</h2>
           <Button variant="ghost" size="sm" onClick={onCancel}>
             <X className="w-4 h-4" />
           </Button>
@@ -90,7 +90,7 @@ export const ExpenseForm = ({ onSubmit, onCancel, categories }: ExpenseFormProps
               />
             </div>
             {amount && profile?.currencies && (
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                 {formatCurrency(parseFloat(amount) || 0, profile.currencies)}
               </p>
             )}
@@ -141,7 +141,7 @@ export const ExpenseForm = ({ onSubmit, onCancel, categories }: ExpenseFormProps
             <Button 
               type="submit" 
               className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-              disabled={!description || !amount || !category}
+              disabled={!description || !amount || !category || !profile?.currency_id}
             >
               Add Expense
             </Button>
