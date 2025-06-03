@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import { Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useExpenses } from "@/hooks/useExpenses";
 import { useBudgets } from "@/hooks/useBudgets";
@@ -23,9 +24,9 @@ const Index = () => {
     );
   }
 
+  // Redirect to auth if user is not authenticated
   if (!user) {
-    // This will be handled by the router, but just in case
-    return null;
+    return <Navigate to="/auth" replace />;
   }
 
   // Transform expenses data to match component interface

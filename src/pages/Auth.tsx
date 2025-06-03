@@ -1,5 +1,6 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { Navigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,19 +10,25 @@ import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Mail, RefreshCw } from "lucide-react";
 
 const Auth = () => {
+  const { user, loading } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [authLoading, setAuthLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [confirmationSent, setConfirmationSent] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
   const { toast } = useToast();
 
+  // Redirect to home if user is already authenticated
+  if (!loading && user) {
+    return <Navigate to="/" replace />;
+  }
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setAuthLoading(true);
 
     try {
       if (isLogin) {
@@ -62,7 +69,7 @@ const Auth = () => {
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      setAuthLoading(false);
     }
   };
 
@@ -203,9 +210,9 @@ const Auth = () => {
             <Button
               type="submit"
               className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-              disabled={loading}
+              disabled={authLoading}
             >
-              {loading ? "Please wait..." : isLogin ? "Sign In" : "Sign Up"}
+              {authLoading ? "Please wait..." : isLogin ? "Sign In" : "Sign Up"}
             </Button>
           </form>
           <div className="mt-4 text-center">
