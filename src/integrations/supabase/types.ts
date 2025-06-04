@@ -55,6 +55,20 @@ export type Database = {
             referencedRelation: "currencies"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_budgets_categories"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_budgets_currencies"
+            columns: ["currency_id"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["id"]
+          },
         ]
       }
       categories: {
@@ -205,6 +219,20 @@ export type Database = {
             referencedRelation: "currencies"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_expenses_categories"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_expenses_currencies"
+            columns: ["currency_id"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["id"]
+          },
         ]
       }
       profiles: {
@@ -234,6 +262,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_profiles_currencies"
+            columns: ["currency_id"]
+            isOneToOne: false
+            referencedRelation: "currencies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "profiles_currency_id_fkey"
             columns: ["currency_id"]
             isOneToOne: false
@@ -247,7 +282,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_budget_spent_amounts: {
+        Args: { user_uuid: string }
+        Returns: {
+          category_id: string
+          spent_amount: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

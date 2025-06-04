@@ -31,37 +31,51 @@ export const useBudgets = () => {
   const { user } = useAuth();
 
   const fetchBudgets = async () => {
-    if (!user) return;
+    if (!user) {
+      setBudgets([]);
+      setLoading(false);
+      return;
+    }
     
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      // Fetch budgets with proper user filtering
+      const { data: budgetsData, error: budgetsError } = await supabase
         .from('budgets')
         .select(`
           *,
           categories(name, color),
           currencies(code, name, symbol, decimal_places)
-        `);
+        `)
+        .eq('user_id', user.id);
 
-      if (error) throw error;
+      if (budgetsError) {
+        console.error('Error fetching budgets:', budgetsError);
+        throw budgetsError;
+      }
 
-      // Calculate spent amounts for each budget
-      const budgetsWithSpent = await Promise.all(
-        (data || []).map(async (budget) => {
-          const { data: expenses } = await supabase
-            .from('expenses')
-            .select('amount')
-            .eq('category_id', budget.category_id)
-            .gte('date', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]);
+      // Use the optimized function to get spent amounts
+      const { data: spentData, error: spentError } = await supabase
+        .rpc('get_budget_spent_amounts', { user_uuid: user.id });
 
-          const spent = expenses?.reduce((sum, expense) => sum + Number(expense.amount), 0) || 0;
-          return { ...budget, spent };
-        })
-      );
+      if (spentError) {
+        console.error('Error fetching spent amounts:', spentError);
+        // Continue without spent amounts rather than failing completely
+      }
+
+      // Merge budgets with spent amounts
+      const budgetsWithSpent = (budgetsData || []).map(budget => {
+        const spentRecord = spentData?.find(s => s.category_id === budget.category_id);
+        return {
+          ...budget,
+          spent: Number(spentRecord?.spent_amount || 0)
+        };
+      });
 
       setBudgets(budgetsWithSpent);
     } catch (error) {
       console.error('Error fetching budgets:', error);
+      setBudgets([]);
     } finally {
       setLoading(false);
     }
@@ -70,15 +84,21 @@ export const useBudgets = () => {
   const updateBudget = async (categoryId: string, amount: number, currencyId: string) => {
     if (!user) return;
 
+    // Validate inputs
+    if (!categoryId || amount <= 0 || !currencyId) {
+      throw new Error('Valid category, amount, and currency are required');
+    }
+
     try {
       const { data, error } = await supabase
         .from('budgets')
         .upsert({
           user_id: user.id,
           category_id: categoryId,
-          amount: amount,
+          amount: Number(amount),
           currency_id: currencyId,
-          period: 'monthly'
+          period: 'monthly',
+          updated_at: new Date().toISOString()
         })
         .select(`
           *,
@@ -87,10 +107,13 @@ export const useBudgets = () => {
         `)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating budget:', error);
+        throw error;
+      }
       
       // Refetch to get updated spent amounts
-      fetchBudgets();
+      await fetchBudgets();
     } catch (error) {
       console.error('Error updating budget:', error);
       throw error;
