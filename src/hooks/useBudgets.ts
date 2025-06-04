@@ -44,8 +44,8 @@ export const useBudgets = () => {
         .from('budgets')
         .select(`
           *,
-          categories(name, color),
-          currencies(code, name, symbol, decimal_places)
+          categories!fk_budgets_categories(name, color),
+          currencies!fk_budgets_currencies(code, name, symbol, decimal_places)
         `)
         .eq('user_id', user.id);
 
@@ -102,8 +102,8 @@ export const useBudgets = () => {
         })
         .select(`
           *,
-          categories(name, color),
-          currencies(code, name, symbol, decimal_places)
+          categories!fk_budgets_categories(name, color),
+          currencies!fk_budgets_currencies(code, name, symbol, decimal_places)
         `)
         .single();
 

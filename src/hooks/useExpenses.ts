@@ -45,8 +45,8 @@ export const useExpenses = () => {
         .from('expenses')
         .select(`
           *,
-          categories(name, color),
-          currencies(code, name, symbol, decimal_places)
+          categories!fk_expenses_categories(name, color),
+          currencies!fk_expenses_currencies(code, name, symbol, decimal_places)
         `)
         .eq('user_id', user.id)
         .order('date', { ascending: false });
@@ -89,8 +89,8 @@ export const useExpenses = () => {
         }])
         .select(`
           *,
-          categories(name, color),
-          currencies(code, name, symbol, decimal_places)
+          categories!fk_expenses_categories(name, color),
+          currencies!fk_expenses_currencies(code, name, symbol, decimal_places)
         `)
         .single();
 

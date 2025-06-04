@@ -36,7 +36,7 @@ export const useProfile = () => {
         .from('profiles')
         .select(`
           *,
-          currencies(code, name, symbol, decimal_places)
+          currencies!fk_profiles_currencies(code, name, symbol, decimal_places)
         `)
         .eq('id', user.id)
         .single();
@@ -67,7 +67,7 @@ export const useProfile = () => {
         .eq('id', user.id)
         .select(`
           *,
-          currencies(code, name, symbol, decimal_places)
+          currencies!fk_profiles_currencies(code, name, symbol, decimal_places)
         `)
         .single();
 
