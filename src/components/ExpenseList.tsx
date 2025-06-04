@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Trash2, Search, Filter } from "lucide-react";
 import { formatCurrency } from "@/utils/currency";
 import { useProfile } from "@/hooks/useProfile";
+import { ExpenseListSkeleton } from "./LoadingSkeleton";
 
 interface Expense {
   id: string;
@@ -29,55 +30,105 @@ interface ExpenseListProps {
   onDeleteExpense: (id: string) => void;
 }
 
-export const ExpenseList = ({ expenses, onDeleteExpense }: ExpenseListProps) => {
+// Memoized expense item component
+const ExpenseItem = React.memo(({ 
+  expense, 
+  userCurrency, 
+  profileCurrencyCode, 
+  onDelete 
+}: {
+  expense: Expense;
+  userCurrency: any;
+  profileCurrencyCode?: string;
+  onDelete: (id: string) => void;
+}) => (
+  <Card className="p-4 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm hover:bg-white/80 dark:hover:bg-slate-700/60 transition-colors">
+    <div className="flex items-center justify-between">
+      <div className="flex-1">
+        <div className="flex items-center gap-3 mb-2">
+          <h3 className="font-medium dark:text-white">{expense.description}</h3>
+          <Badge variant="secondary" className="text-xs">
+            {expense.category}
+          </Badge>
+          {expense.currency && expense.currency.code !== profileCurrencyCode && (
+            <Badge variant="outline" className="text-xs">
+              {expense.currency.code}
+            </Badge>
+          )}
+        </div>
+        <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-300">
+          <span>{new Date(expense.date).toLocaleDateString()}</span>
+          {expense.notes && (
+            <span className="text-gray-500 dark:text-gray-400 truncate max-w-xs">
+              {expense.notes}
+            </span>
+          )}
+        </div>
+      </div>
+      
+      <div className="flex items-center gap-3">
+        <span className="text-lg font-semibold dark:text-white">
+          {expense.currency 
+            ? formatCurrency(expense.amount, expense.currency)
+            : formatCurrency(expense.amount, userCurrency)
+          }
+        </span>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onDelete(expense.id)}
+          className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+        >
+          <Trash2 className="w-4 h-4" />
+        </Button>
+      </div>
+    </div>
+  </Card>
+));
+
+ExpenseItem.displayName = 'ExpenseItem';
+
+export const ExpenseList = React.memo(({ expenses, onDeleteExpense }: ExpenseListProps) => {
   const { profile, loading: profileLoading } = useProfile();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
   const [sortBy, setSortBy] = useState("date");
 
-  const categories = Array.from(new Set(expenses.map(e => e.category)));
+  // Memoize categories extraction
+  const categories = useMemo(() => 
+    Array.from(new Set(expenses.map(e => e.category))), 
+    [expenses]
+  );
 
-  const filteredAndSortedExpenses = expenses
-    .filter(expense => {
-      const matchesSearch = expense.description.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory = filterCategory === "all" || expense.category === filterCategory;
-      return matchesSearch && matchesCategory;
-    })
-    .sort((a, b) => {
-      switch (sortBy) {
-        case "amount":
-          return b.amount - a.amount;
-        case "category":
-          return a.category.localeCompare(b.category);
-        default:
-          return new Date(b.date).getTime() - new Date(a.date).getTime();
-      }
-    });
+  // Memoize filtered and sorted expenses
+  const filteredAndSortedExpenses = useMemo(() => {
+    return expenses
+      .filter(expense => {
+        const matchesSearch = expense.description.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesCategory = filterCategory === "all" || expense.category === filterCategory;
+        return matchesSearch && matchesCategory;
+      })
+      .sort((a, b) => {
+        switch (sortBy) {
+          case "amount":
+            return b.amount - a.amount;
+          case "category":
+            return a.category.localeCompare(b.category);
+          default:
+            return new Date(b.date).getTime() - new Date(a.date).getTime();
+        }
+      });
+  }, [expenses, searchTerm, filterCategory, sortBy]);
 
-  const totalFiltered = filteredAndSortedExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+  // Memoize total calculation
+  const totalFiltered = useMemo(() => 
+    filteredAndSortedExpenses.reduce((sum, expense) => sum + expense.amount, 0),
+    [filteredAndSortedExpenses]
+  );
 
-  // Don't render currency-dependent content until profile is loaded
+  // Show loading skeleton while profile is loading
   if (profileLoading) {
-    return (
-      <div className="space-y-6">
-        <Card className="p-6 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm">
-          <div className="animate-pulse">
-            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mb-4"></div>
-            <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded"></div>
-          </div>
-        </Card>
-        <div className="space-y-3">
-          {[...Array(3)].map((_, i) => (
-            <Card key={i} className="p-4 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm">
-              <div className="animate-pulse">
-                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2"></div>
-                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
-              </div>
-            </Card>
-          ))}
-        </div>
-      </div>
-    );
+    return <ExpenseListSkeleton />;
   }
 
   const userCurrency = profile?.currencies || { symbol: '$', decimal_places: 2 };
@@ -141,48 +192,13 @@ export const ExpenseList = ({ expenses, onDeleteExpense }: ExpenseListProps) => 
       {/* Expense List */}
       <div className="space-y-3">
         {filteredAndSortedExpenses.map((expense) => (
-          <Card key={expense.id} className="p-4 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm hover:bg-white/80 dark:hover:bg-slate-700/60 transition-colors">
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  <h3 className="font-medium dark:text-white">{expense.description}</h3>
-                  <Badge variant="secondary" className="text-xs">
-                    {expense.category}
-                  </Badge>
-                  {expense.currency && expense.currency.code !== profile?.currencies?.code && (
-                    <Badge variant="outline" className="text-xs">
-                      {expense.currency.code}
-                    </Badge>
-                  )}
-                </div>
-                <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-300">
-                  <span>{new Date(expense.date).toLocaleDateString()}</span>
-                  {expense.notes && (
-                    <span className="text-gray-500 dark:text-gray-400 truncate max-w-xs">
-                      {expense.notes}
-                    </span>
-                  )}
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-3">
-                <span className="text-lg font-semibold dark:text-white">
-                  {expense.currency 
-                    ? formatCurrency(expense.amount, expense.currency)
-                    : formatCurrency(expense.amount, userCurrency)
-                  }
-                </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onDeleteExpense(expense.id)}
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          </Card>
+          <ExpenseItem
+            key={expense.id}
+            expense={expense}
+            userCurrency={userCurrency}
+            profileCurrencyCode={profile?.currencies?.code}
+            onDelete={onDeleteExpense}
+          />
         ))}
 
         {filteredAndSortedExpenses.length === 0 && (
@@ -193,4 +209,6 @@ export const ExpenseList = ({ expenses, onDeleteExpense }: ExpenseListProps) => 
       </div>
     </div>
   );
-};
+});
+
+ExpenseList.displayName = 'ExpenseList';

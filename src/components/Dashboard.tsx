@@ -1,9 +1,11 @@
 
+import React, { useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, DollarSign, Calendar } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 import { useProfile } from "@/hooks/useProfile";
 import { formatCurrency } from "@/utils/currency";
+import { DashboardSkeleton } from "./LoadingSkeleton";
 
 interface Expense {
   id: string;
@@ -30,90 +32,82 @@ interface DashboardProps {
   budgets: Budget[];
 }
 
-export const Dashboard = ({ expenses = [], budgets = [] }: DashboardProps) => {
-  const { profile, loading: profileLoading } = useProfile();
-  
-  // Calculate current month totals
-  const currentMonth = new Date().getMonth();
-  const currentYear = new Date().getFullYear();
-  
-  const currentMonthExpenses = expenses.filter(expense => {
-    const expenseDate = new Date(expense.date);
-    return expenseDate.getMonth() === currentMonth && expenseDate.getFullYear() === currentYear;
-  });
+const COLORS = ['#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#ec4899', '#ef4444'];
 
-  const totalSpent = currentMonthExpenses.reduce((sum, expense) => sum + expense.amount, 0);
-  const totalBudget = budgets.reduce((sum, budget) => sum + budget.amount, 0);
-  const remainingBudget = totalBudget - totalSpent;
-
-  // Show loading state while profile is loading
-  if (profileLoading) {
+// Memoized custom tooltip component
+const CustomTooltip = React.memo(({ active, payload, label, userCurrency }: any) => {
+  if (active && payload && payload.length) {
     return (
-      <div className="space-y-6">
-        {/* Loading Overview Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {[...Array(3)].map((_, i) => (
-            <Card key={i} className="p-6 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20">
-              <div className="animate-pulse">
-                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-2"></div>
-                <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
-              </div>
-            </Card>
-          ))}
-        </div>
-
-        {/* Loading Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {[...Array(2)].map((_, i) => (
-            <Card key={i} className="p-6 bg-white/60 dark:bg-slate-800/60 backdrop-blur-sm">
-              <div className="animate-pulse">
-                <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mb-4"></div>
-                <div className="h-[300px] bg-gray-200 dark:bg-gray-700 rounded"></div>
-              </div>
-            </Card>
-          ))}
-        </div>
+      <div className="bg-white dark:bg-slate-800 p-3 border border-gray-200 dark:border-slate-600 rounded-lg shadow-lg">
+        <p className="font-medium dark:text-white">{label}</p>
+        {payload.map((entry: any, index: number) => (
+          <p key={index} style={{ color: entry.color }} className="text-sm">
+            {entry.name}: {formatCurrency(entry.value, userCurrency)}
+          </p>
+        ))}
       </div>
     );
   }
+  return null;
+});
 
-  const userCurrency = profile?.currencies || { symbol: '$', decimal_places: 2 };
+CustomTooltip.displayName = 'CustomTooltip';
 
-  // Prepare data for charts
-  const categoryData = budgets.map(budget => ({
-    name: budget.categories?.name || 'Unknown Category',
-    spent: budget.spent || 0,
-    budget: budget.amount,
-    remaining: budget.amount - (budget.spent || 0)
-  }));
+export const Dashboard = React.memo(({ expenses = [], budgets = [] }: DashboardProps) => {
+  const { profile, loading: profileLoading } = useProfile();
+  
+  // Memoize expensive calculations
+  const calculatedData = useMemo(() => {
+    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
+    
+    const currentMonthExpenses = expenses.filter(expense => {
+      const expenseDate = new Date(expense.date);
+      return expenseDate.getMonth() === currentMonth && expenseDate.getFullYear() === currentYear;
+    });
 
-  const pieData = budgets
-    .filter(budget => (budget.spent || 0) > 0)
-    .map(budget => ({
+    const totalSpent = currentMonthExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+    const totalBudget = budgets.reduce((sum, budget) => sum + budget.amount, 0);
+    const remainingBudget = totalBudget - totalSpent;
+    
+    return {
+      currentMonthExpenses,
+      totalSpent,
+      totalBudget,
+      remainingBudget
+    };
+  }, [expenses, budgets]);
+
+  // Memoize chart data
+  const chartData = useMemo(() => {
+    const categoryData = budgets.map(budget => ({
       name: budget.categories?.name || 'Unknown Category',
-      value: budget.spent || 0
+      spent: budget.spent || 0,
+      budget: budget.amount,
+      remaining: budget.amount - (budget.spent || 0)
     }));
 
-  const COLORS = ['#3b82f6', '#6366f1', '#8b5cf6', '#a855f7', '#ec4899', '#ef4444'];
+    const pieData = budgets
+      .filter(budget => (budget.spent || 0) > 0)
+      .map(budget => ({
+        name: budget.categories?.name || 'Unknown Category',
+        value: budget.spent || 0
+      }));
 
-  const recentExpenses = expenses.slice(0, 5);
+    return { categoryData, pieData };
+  }, [budgets]);
 
-  // Custom tooltip for charts that uses the user's currency
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-white dark:bg-slate-800 p-3 border border-gray-200 dark:border-slate-600 rounded-lg shadow-lg">
-          <p className="font-medium dark:text-white">{label}</p>
-          {payload.map((entry: any, index: number) => (
-            <p key={index} style={{ color: entry.color }} className="text-sm">
-              {entry.name}: {formatCurrency(entry.value, userCurrency)}
-            </p>
-          ))}
-        </div>
-      );
-    }
-    return null;
-  };
+  // Memoize recent expenses
+  const recentExpenses = useMemo(() => expenses.slice(0, 5), [expenses]);
+
+  // Show loading skeleton while profile is loading
+  if (profileLoading) {
+    return <DashboardSkeleton />;
+  }
+
+  const userCurrency = profile?.currencies || { symbol: '$', decimal_places: 2 };
+  const { totalSpent, totalBudget, remainingBudget } = calculatedData;
+  const { categoryData, pieData } = chartData;
 
   return (
     <div className="space-y-6">
@@ -184,7 +178,7 @@ export const Dashboard = ({ expenses = [], budgets = [] }: DashboardProps) => {
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip content={<CustomTooltip />} />
+                <Tooltip content={<CustomTooltip userCurrency={userCurrency} />} />
               </PieChart>
             </ResponsiveContainer>
           ) : (
@@ -209,7 +203,7 @@ export const Dashboard = ({ expenses = [], budgets = [] }: DashboardProps) => {
                 className="dark:fill-gray-300"
               />
               <YAxis className="dark:fill-gray-300" />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<CustomTooltip userCurrency={userCurrency} />} />
               <Bar dataKey="budget" fill="#e2e8f0" name="Budget" />
               <Bar dataKey="spent" fill="#3b82f6" name="Spent" />
             </BarChart>
@@ -239,4 +233,6 @@ export const Dashboard = ({ expenses = [], budgets = [] }: DashboardProps) => {
       </Card>
     </div>
   );
-};
+});
+
+Dashboard.displayName = 'Dashboard';

@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -32,7 +32,7 @@ export const useExpenses = () => {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
-  const fetchExpenses = async () => {
+  const fetchExpenses = useCallback(async () => {
     if (!user) {
       setExpenses([]);
       setLoading(false);
@@ -62,9 +62,9 @@ export const useExpenses = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
-  const addExpense = async (expense: {
+  const addExpense = useCallback(async (expense: {
     description: string;
     amount: number;
     date: string;
@@ -104,9 +104,9 @@ export const useExpenses = () => {
       console.error('Error adding expense:', error);
       throw error;
     }
-  };
+  }, [user]);
 
-  const deleteExpense = async (id: string) => {
+  const deleteExpense = useCallback(async (id: string) => {
     if (!user || !id) return;
 
     try {
@@ -125,11 +125,11 @@ export const useExpenses = () => {
       console.error('Error deleting expense:', error);
       throw error;
     }
-  };
+  }, [user]);
 
   useEffect(() => {
     fetchExpenses();
-  }, [user]);
+  }, [fetchExpenses]);
 
   return {
     expenses,

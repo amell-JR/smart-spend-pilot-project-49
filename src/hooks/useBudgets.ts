@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -30,7 +30,7 @@ export const useBudgets = () => {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
-  const fetchBudgets = async () => {
+  const fetchBudgets = useCallback(async () => {
     if (!user) {
       setBudgets([]);
       setLoading(false);
@@ -79,9 +79,9 @@ export const useBudgets = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
 
-  const updateBudget = async (categoryId: string, amount: number, currencyId: string) => {
+  const updateBudget = useCallback(async (categoryId: string, amount: number, currencyId: string) => {
     if (!user) return;
 
     // Validate inputs
@@ -118,11 +118,11 @@ export const useBudgets = () => {
       console.error('Error updating budget:', error);
       throw error;
     }
-  };
+  }, [user, fetchBudgets]);
 
   useEffect(() => {
     fetchBudgets();
-  }, [user]);
+  }, [fetchBudgets]);
 
   return {
     budgets,
