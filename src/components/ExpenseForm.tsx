@@ -31,7 +31,7 @@ export const ExpenseForm = ({ onSubmit, onCancel }: ExpenseFormProps) => {
   const { profile } = useProfile();
   const { categories } = useCategories();
   const { toast } = useToast();
-  const { processing: ocrProcessing, ocrData, processReceipt, resetOCR } = useOCR();
+  const { processing: ocrProcessing, ocrData, rawText, processReceipt, resetOCR } = useOCR();
   
   const [activeTab, setActiveTab] = useState("manual");
   const [description, setDescription] = useState("");
@@ -301,6 +301,7 @@ export const ExpenseForm = ({ onSubmit, onCancel }: ExpenseFormProps) => {
             ) : (
               <OCRResults
                 data={ocrData}
+                rawText={rawText || undefined}
                 onApprove={handleOCRApprove}
                 onEdit={handleOCREdit}
               />

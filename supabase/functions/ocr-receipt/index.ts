@@ -32,10 +32,9 @@ serve(async (req) => {
       );
     }
 
-    console.log('Processing receipt OCR for user:', userId);
+    console.log('Processing receipt OCR with vision model for user:', userId);
 
-    // Use Groq's text model with a prompt to analyze the image description
-    // Since Groq doesn't have vision models, we'll use a text-based approach
+    // Use Groq's vision model for proper OCR processing
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -43,11 +42,11 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama3-8b-8192',
+        model: 'meta-llama/llama-4-scout-17b-16e-instruct',
         messages: [
           {
             role: 'system',
-            content: `You are an expert at analyzing receipt data. Based on the receipt image description provided, extract structured data and return ONLY a JSON object with this exact format:
+            content: `You are an expert OCR system specialized in extracting data from receipt images. Analyze the receipt image and extract structured data. Return ONLY a valid JSON object with this exact format:
             {
               "merchant": "Business name or null",
               "amount": "Total amount as number or null",
@@ -56,81 +55,110 @@ serve(async (req) => {
               "category": "Suggested category (Food & Dining, Transportation, Shopping, Entertainment, Bills & Utilities, Healthcare, Travel, Education, Business, Other)",
               "tax": "Tax amount as number or null",
               "currency": "Currency code (USD, EUR, etc.) or null",
-              "confidence": "Confidence score 0-1"
+              "confidence": "Confidence score 0-1 based on image clarity and data extraction accuracy"
             }
+            
+            Guidelines:
+            - Extract text exactly as it appears on the receipt
+            - For dates, convert to YYYY-MM-DD format
+            - For amounts, extract only numeric values
+            - Set confidence based on image quality and text clarity
+            - If you cannot read certain fields clearly, set them to null
+            - Choose the most appropriate category from the provided list
             
             Return ONLY the JSON object, no other text.`
           },
           {
             role: 'user',
-            content: `Please extract receipt data from this base64 image: ${imageBase64.substring(0, 100)}... (image truncated for processing). 
-            
-            Analyze what you can infer from a typical receipt and provide structured data. If you cannot determine specific values, use null for those fields. For category, choose the most appropriate from the list provided. Set confidence based on how certain you are about the extracted data.`
+            content: [
+              {
+                type: 'text',
+                text: 'Please extract all the data from this receipt image and return it as structured JSON.'
+              },
+              {
+                type: 'image_url',
+                image_url: {
+                  url: `data:image/jpeg;base64,${imageBase64}`
+                }
+              }
+            ]
           }
         ],
+        response_format: { type: "json_object" },
         temperature: 0.1,
-        max_tokens: 500
+        max_completion_tokens: 1024,
+        top_p: 1,
+        stream: false
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`Groq API error: ${response.status} - ${errorText}`);
-      throw new Error(`Groq API error: ${response.status}`);
+      console.error(`Groq Vision API error: ${response.status} - ${errorText}`);
+      throw new Error(`Groq Vision API error: ${response.status} - ${errorText}`);
     }
 
     const groqData = await response.json();
-    const extractedText = groqData.choices[0]?.message?.content;
+    const extractedContent = groqData.choices[0]?.message?.content;
 
-    if (!extractedText) {
-      throw new Error('No content returned from Groq API');
+    if (!extractedContent) {
+      throw new Error('No content returned from Groq Vision API');
     }
 
-    console.log('Raw OCR result:', extractedText);
+    console.log('Raw OCR result from vision model:', extractedContent);
 
-    // Parse the JSON response from Groq
+    // Parse the JSON response from Groq Vision
     let receiptData;
     try {
-      const jsonMatch = extractedText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        receiptData = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error('No JSON found in response');
-      }
+      receiptData = JSON.parse(extractedContent);
     } catch (parseError) {
       console.error('JSON parsing error:', parseError);
+      console.error('Raw content:', extractedContent);
+      
       // Fallback: create a basic structure for manual entry
       receiptData = {
         merchant: null,
         amount: null,
-        date: new Date().toISOString().split('T')[0], // Default to today
+        date: new Date().toISOString().split('T')[0],
         items: [],
         category: 'Other',
         tax: null,
         currency: 'USD',
-        confidence: 0.3
+        confidence: 0.2
       };
     }
 
-    // Ensure all required fields exist
+    // Validate and sanitize the extracted data
     receiptData = {
       merchant: receiptData.merchant || null,
-      amount: receiptData.amount || null,
+      amount: receiptData.amount ? parseFloat(receiptData.amount) : null,
       date: receiptData.date || new Date().toISOString().split('T')[0],
-      items: receiptData.items || [],
+      items: Array.isArray(receiptData.items) ? receiptData.items : [],
       category: receiptData.category || 'Other',
-      tax: receiptData.tax || null,
+      tax: receiptData.tax ? parseFloat(receiptData.tax) : null,
       currency: receiptData.currency || 'USD',
       confidence: receiptData.confidence || 0.5
     };
 
-    console.log('Parsed receipt data:', receiptData);
+    // Validate date format
+    if (receiptData.date && !/^\d{4}-\d{2}-\d{2}$/.test(receiptData.date)) {
+      console.warn('Invalid date format detected, using current date');
+      receiptData.date = new Date().toISOString().split('T')[0];
+    }
+
+    // Ensure confidence is between 0 and 1
+    if (receiptData.confidence < 0 || receiptData.confidence > 1) {
+      receiptData.confidence = Math.max(0, Math.min(1, receiptData.confidence));
+    }
+
+    console.log('Parsed and validated receipt data:', receiptData);
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         data: receiptData,
-        rawText: extractedText 
+        rawText: extractedContent,
+        message: receiptData.confidence > 0.7 ? 'Receipt processed successfully' : 'Receipt processed with low confidence - please review'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
@@ -140,7 +168,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: 'OCR processing failed', 
-        details: error.message 
+        details: error.message,
+        success: false
       }),
       { 
         status: 500, 

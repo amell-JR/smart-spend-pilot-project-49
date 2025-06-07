@@ -6,8 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Check, Edit3, AlertCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Check, Edit3, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { useCategories } from '@/hooks/useCategories';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface OCRData {
   merchant?: string;
@@ -30,11 +32,13 @@ interface OCRResultsProps {
     notes?: string;
   }) => void;
   onEdit: () => void;
+  rawText?: string;
 }
 
-export const OCRResults = ({ data, onApprove, onEdit }: OCRResultsProps) => {
+export const OCRResults = ({ data, onApprove, onEdit, rawText }: OCRResultsProps) => {
   const { categories } = useCategories();
   const [editMode, setEditMode] = useState(false);
+  const [showRawData, setShowRawData] = useState(false);
   const [formData, setFormData] = useState({
     description: data.merchant || '',
     amount: data.amount?.toString() || '',
@@ -71,23 +75,32 @@ export const OCRResults = ({ data, onApprove, onEdit }: OCRResultsProps) => {
     });
   };
 
-  const confidenceColor = (confidence?: number) => {
-    if (!confidence) return 'text-gray-500';
-    if (confidence > 0.8) return 'text-green-600';
-    if (confidence > 0.6) return 'text-yellow-600';
-    return 'text-red-600';
+  const getConfidenceBadge = (confidence?: number) => {
+    if (!confidence) return { variant: 'secondary' as const, text: 'Unknown', color: 'gray' };
+    
+    if (confidence >= 0.8) return { variant: 'default' as const, text: 'High', color: 'green' };
+    if (confidence >= 0.6) return { variant: 'secondary' as const, text: 'Medium', color: 'yellow' };
+    return { variant: 'destructive' as const, text: 'Low', color: 'red' };
   };
+
+  const confidenceBadge = getConfidenceBadge(data.confidence);
 
   return (
     <Card className="p-6 bg-white dark:bg-slate-800">
       <div className="space-y-4">
         <div className="flex justify-between items-center">
-          <h3 className="text-lg font-semibold dark:text-white">OCR Results</h3>
+          <div className="flex items-center gap-3">
+            <h3 className="text-lg font-semibold dark:text-white">OCR Results</h3>
+            <Badge variant={confidenceBadge.variant}>
+              {confidenceBadge.text} Confidence
+              {data.confidence && ` (${Math.round(data.confidence * 100)}%)`}
+            </Badge>
+          </div>
           <div className="flex items-center gap-2">
-            {data.confidence && (
-              <span className={`text-sm ${confidenceColor(data.confidence)}`}>
-                {Math.round(data.confidence * 100)}% confidence
-              </span>
+            {rawText && (
+              <Button variant="ghost" size="sm" onClick={() => setShowRawData(!showRawData)}>
+                {showRawData ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </Button>
             )}
             <Button variant="ghost" size="sm" onClick={() => setEditMode(!editMode)}>
               <Edit3 className="w-4 h-4" />
@@ -96,12 +109,23 @@ export const OCRResults = ({ data, onApprove, onEdit }: OCRResultsProps) => {
         </div>
 
         {data.confidence && data.confidence < 0.7 && (
-          <div className="flex items-center gap-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-            <AlertCircle className="w-4 h-4 text-yellow-600" />
-            <span className="text-sm text-yellow-700 dark:text-yellow-300">
-              Low confidence detected. Please review the extracted data carefully.
-            </span>
-          </div>
+          <Alert>
+            <AlertCircle className="w-4 h-4" />
+            <AlertDescription>
+              Low confidence detected. Please review the extracted data carefully and make corrections as needed.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {showRawData && rawText && (
+          <Card className="p-3 bg-gray-50 dark:bg-slate-700">
+            <div className="text-sm">
+              <Label className="font-medium">Raw OCR Data:</Label>
+              <pre className="mt-2 text-xs overflow-x-auto whitespace-pre-wrap">
+                {rawText}
+              </pre>
+            </div>
+          </Card>
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -113,10 +137,13 @@ export const OCRResults = ({ data, onApprove, onEdit }: OCRResultsProps) => {
                 value={formData.description}
                 onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                 placeholder="Enter description"
+                className="mt-1"
               />
             ) : (
-              <div className="p-2 bg-gray-50 dark:bg-slate-700 rounded-md">
-                {formData.description || 'Not detected'}
+              <div className="p-2 bg-gray-50 dark:bg-slate-700 rounded-md mt-1">
+                {formData.description || (
+                  <span className="text-gray-400 italic">Not detected</span>
+                )}
               </div>
             )}
           </div>
@@ -131,10 +158,22 @@ export const OCRResults = ({ data, onApprove, onEdit }: OCRResultsProps) => {
                 value={formData.amount}
                 onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
                 placeholder="0.00"
+                className="mt-1"
               />
             ) : (
-              <div className="p-2 bg-gray-50 dark:bg-slate-700 rounded-md">
-                {formData.amount ? `$${formData.amount}` : 'Not detected'}
+              <div className="p-2 bg-gray-50 dark:bg-slate-700 rounded-md mt-1">
+                {formData.amount ? (
+                  <span className="font-medium">
+                    {data.currency || '$'}{formData.amount}
+                    {data.tax && (
+                      <span className="text-sm text-gray-500 ml-2">
+                        (Tax: {data.currency || '$'}{data.tax})
+                      </span>
+                    )}
+                  </span>
+                ) : (
+                  <span className="text-gray-400 italic">Not detected</span>
+                )}
               </div>
             )}
           </div>
@@ -147,10 +186,15 @@ export const OCRResults = ({ data, onApprove, onEdit }: OCRResultsProps) => {
                 type="date"
                 value={formData.date}
                 onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                className="mt-1"
               />
             ) : (
-              <div className="p-2 bg-gray-50 dark:bg-slate-700 rounded-md">
-                {formData.date || 'Not detected'}
+              <div className="p-2 bg-gray-50 dark:bg-slate-700 rounded-md mt-1">
+                {formData.date ? (
+                  new Date(formData.date).toLocaleDateString()
+                ) : (
+                  <span className="text-gray-400 italic">Not detected</span>
+                )}
               </div>
             )}
           </div>
@@ -159,7 +203,7 @@ export const OCRResults = ({ data, onApprove, onEdit }: OCRResultsProps) => {
             <Label htmlFor="category">Category *</Label>
             {editMode ? (
               <Select value={formData.category_id} onValueChange={(value) => setFormData(prev => ({ ...prev, category_id: value }))}>
-                <SelectTrigger>
+                <SelectTrigger className="mt-1">
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
@@ -177,14 +221,16 @@ export const OCRResults = ({ data, onApprove, onEdit }: OCRResultsProps) => {
                 </SelectContent>
               </Select>
             ) : (
-              <div className="p-2 bg-gray-50 dark:bg-slate-700 rounded-md">
-                {categories.find(c => c.id === formData.category_id)?.name || data.category || 'Not detected'}
+              <div className="p-2 bg-gray-50 dark:bg-slate-700 rounded-md mt-1">
+                {categories.find(c => c.id === formData.category_id)?.name || 
+                 data.category || 
+                 <span className="text-gray-400 italic">Not detected</span>}
               </div>
             )}
           </div>
         </div>
 
-        {formData.notes && (
+        {(formData.notes || editMode) && (
           <div>
             <Label htmlFor="notes">Items / Notes</Label>
             {editMode ? (
@@ -194,10 +240,13 @@ export const OCRResults = ({ data, onApprove, onEdit }: OCRResultsProps) => {
                 onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
                 placeholder="Items or additional notes"
                 rows={3}
+                className="mt-1"
               />
             ) : (
-              <div className="p-2 bg-gray-50 dark:bg-slate-700 rounded-md">
-                {formData.notes}
+              <div className="p-2 bg-gray-50 dark:bg-slate-700 rounded-md mt-1">
+                {formData.notes || (
+                  <span className="text-gray-400 italic">No items detected</span>
+                )}
               </div>
             )}
           </div>
@@ -207,7 +256,11 @@ export const OCRResults = ({ data, onApprove, onEdit }: OCRResultsProps) => {
           <Button variant="outline" onClick={onEdit} className="flex-1">
             Start Over
           </Button>
-          <Button onClick={handleApprove} className="flex-1 bg-green-600 hover:bg-green-700">
+          <Button 
+            onClick={handleApprove} 
+            className="flex-1 bg-green-600 hover:bg-green-700"
+            disabled={!formData.description || !formData.amount || !formData.date || !formData.category_id}
+          >
             <Check className="w-4 h-4 mr-2" />
             Add Expense
           </Button>

@@ -15,9 +15,19 @@ interface OCRData {
   confidence?: number;
 }
 
+interface OCRResponse {
+  success: boolean;
+  data?: OCRData;
+  rawText?: string;
+  message?: string;
+  error?: string;
+  details?: string;
+}
+
 export const useOCR = () => {
   const [processing, setProcessing] = useState(false);
   const [ocrData, setOcrData] = useState<OCRData | null>(null);
+  const [rawText, setRawText] = useState<string | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -33,7 +43,7 @@ export const useOCR = () => {
 
     setProcessing(true);
     try {
-      console.log('Starting OCR processing...');
+      console.log('Starting OCR processing with vision model...');
       
       const { data, error } = await supabase.functions.invoke('ocr-receipt', {
         body: {
@@ -47,24 +57,39 @@ export const useOCR = () => {
         throw error;
       }
 
-      if (!data?.success) {
-        throw new Error(data?.error || 'OCR processing failed');
+      const response = data as OCRResponse;
+
+      if (!response?.success) {
+        throw new Error(response?.error || response?.details || 'OCR processing failed');
       }
 
-      console.log('OCR processing successful:', data.data);
-      setOcrData(data.data);
+      console.log('OCR processing successful:', response.data);
+      setOcrData(response.data || null);
+      setRawText(response.rawText || null);
       
+      // Show appropriate toast based on confidence
+      const confidence = response.data?.confidence || 0;
       toast({
-        title: "Success",
-        description: "Receipt processed successfully",
+        title: confidence > 0.7 ? "Success" : "Receipt Processed",
+        description: response.message || (
+          confidence > 0.7 
+            ? "Receipt processed successfully" 
+            : "Receipt processed with low confidence - please review the extracted data"
+        ),
+        variant: confidence > 0.7 ? "default" : "destructive"
       });
 
-      return data.data;
+      return response.data || null;
     } catch (error) {
       console.error('OCR processing error:', error);
+      
+      const errorMessage = error instanceof Error ? error.message : "Failed to process receipt";
+      
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to process receipt",
+        description: errorMessage.includes('Vision API') 
+          ? "Failed to process receipt image. Please try again or use manual entry."
+          : errorMessage,
         variant: "destructive"
       });
       return null;
@@ -75,11 +100,13 @@ export const useOCR = () => {
 
   const resetOCR = () => {
     setOcrData(null);
+    setRawText(null);
   };
 
   return {
     processing,
     ocrData,
+    rawText,
     processReceipt,
     resetOCR
   };
