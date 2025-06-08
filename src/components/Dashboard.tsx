@@ -1,7 +1,7 @@
 
 import React, { useMemo } from "react";
 import { Card } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, DollarSign, Calendar } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, Calendar } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 import { useProfile } from "@/hooks/useProfile";
 import { formatCurrency } from "@/utils/currency";
@@ -136,7 +136,7 @@ export const Dashboard = React.memo(({ expenses = [], budgets = [] }: DashboardP
               </p>
             </div>
             <div className="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center">
-              <DollarSign className="w-6 h-6 text-white" />
+              <Wallet className="w-6 h-6 text-white" />
             </div>
           </div>
         </Card>
