@@ -1,73 +1,114 @@
-# Welcome to your Lovable project
+# SpendWise - Smart Expense Management
 
-## Project info
+A modern expense tracking and budget management application built with React, TypeScript, and Supabase.
 
-**URL**: https://lovable.dev/projects/bf9ad4d1-20aa-4119-881d-2240bc923db8
+## Features
 
-## How can I edit this code?
+- 📊 **Dashboard Overview** - Visual insights into your spending patterns
+- 💰 **Expense Tracking** - Easy expense entry with receipt scanning (OCR)
+- 🎯 **Budget Management** - Set and track budgets by category
+- 📱 **Responsive Design** - Works seamlessly on desktop and mobile
+- 🌙 **Dark Mode** - Toggle between light and dark themes
+- 🔐 **Secure Authentication** - User accounts with Supabase Auth
+- 💱 **Multi-Currency Support** - Track expenses in different currencies
 
-There are several ways of editing your application.
+## Tech Stack
 
-**Use Lovable**
+- **Frontend**: React 18, TypeScript, Tailwind CSS
+- **UI Components**: Radix UI, shadcn/ui
+- **Backend**: Supabase (Database, Auth, Edge Functions)
+- **Charts**: Recharts
+- **OCR**: Groq Vision API for receipt processing
+- **Deployment**: Vercel
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/bf9ad4d1-20aa-4119-881d-2240bc923db8) and start prompting.
+## Getting Started
 
-Changes made via Lovable will be committed automatically to this repo.
+### Prerequisites
 
-**Use your preferred IDE**
+- Node.js 18+ and npm
+- Supabase account
+- Groq API key (for OCR functionality)
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Installation
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+1. Clone the repository:
+```bash
+git clone <your-repo-url>
+cd spendwise
+```
 
-Follow these steps:
+2. Install dependencies:
+```bash
+npm install
+```
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+3. Set up environment variables:
+```bash
+cp .env.example .env.local
+```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+4. Configure your environment variables (see Environment Variables section below)
 
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+5. Start the development server:
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## Environment Variables
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+For local development, create a `.env.local` file:
 
-**Use GitHub Codespaces**
+```env
+VITE_SUPABASE_URL=your_supabase_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+For Supabase Edge Functions, set in your Supabase dashboard:
+```env
+GROQ_API_KEY=your_groq_api_key
+```
 
-## What technologies are used for this project?
+## Deployment
 
-This project is built with:
+### Vercel Deployment
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+1. Connect your repository to Vercel
+2. Set the following environment variables in Vercel:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
 
-## How can I deploy this project?
+### Supabase Setup
 
-Simply open [Lovable](https://lovable.dev/projects/bf9ad4d1-20aa-4119-881d-2240bc923db8) and click on Share -> Publish.
+1. Create a new Supabase project
+2. Run the database migrations
+3. Set up the Edge Functions
+4. Configure environment variables in Supabase dashboard
 
-## Can I connect a custom domain to my Lovable project?
+## API Keys Setup
 
-Yes, you can!
+### For Vercel Deployment
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+1. Go to your Vercel dashboard
+2. Select your project
+3. Go to Settings → Environment Variables
+4. Add the following variables:
+   - `VITE_SUPABASE_URL`: Your Supabase project URL
+   - `VITE_SUPABASE_ANON_KEY`: Your Supabase anonymous key
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+### For Supabase Edge Functions
+
+1. Go to your Supabase dashboard
+2. Navigate to Edge Functions → Settings
+3. Add environment variables:
+   - `GROQ_API_KEY`: Your Groq API key for OCR functionality
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
+
+## License
+
+This project is licensed under the MIT License.
