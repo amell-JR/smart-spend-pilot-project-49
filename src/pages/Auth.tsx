@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,6 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Mail, RefreshCw } from "lucide-react";
+
+interface AuthError {
+  message: string;
+}
 
 const Auth = () => {
   const { user, loading } = useAuth();
@@ -62,10 +66,11 @@ const Auth = () => {
           description: "We've sent you a confirmation link to complete your registration.",
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const authError = error as AuthError;
       toast({
         title: "Authentication failed",
-        description: error.message,
+        description: authError.message || "An unexpected error occurred",
         variant: "destructive",
       });
     } finally {
@@ -87,10 +92,11 @@ const Auth = () => {
         title: "Email sent",
         description: "We've sent another confirmation email to your inbox.",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const authError = error as AuthError;
       toast({
         title: "Failed to resend email",
-        description: error.message,
+        description: authError.message || "An unexpected error occurred",
         variant: "destructive",
       });
     } finally {
