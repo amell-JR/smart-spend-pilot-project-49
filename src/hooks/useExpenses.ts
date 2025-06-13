@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/api-client';
 import { useAuth } from '@/hooks/useAuth';
 
 export interface Expense {
@@ -38,18 +38,20 @@ export const useExpenses = () => {
       setLoading(false);
       return;
     }
-    
+
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('expenses')
-        .select(`
-          *,
-          categories!fk_expenses_categories(name, color),
-          currencies!fk_expenses_currencies(code, name, symbol, decimal_places)
-        `)
-        .eq('user_id', user.id)
-        .order('date', { ascending: false });
+      const { data, error } = await supabase.withRetry(async (client) =>
+        client
+          .from('expenses')
+          .select(`
+            *,
+            categories!fk_expenses_categories(name, color),
+            currencies!fk_expenses_currencies(code, name, symbol, decimal_places)
+          `)
+          .eq('user_id', user.id)
+          .order('date', { ascending: false })
+      );
 
       if (error) {
         console.error('Error fetching expenses:', error);
@@ -80,19 +82,21 @@ export const useExpenses = () => {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('expenses')
-        .insert([{
-          ...expense,
-          user_id: user.id,
-          amount: Number(expense.amount)
-        }])
-        .select(`
-          *,
-          categories!fk_expenses_categories(name, color),
-          currencies!fk_expenses_currencies(code, name, symbol, decimal_places)
-        `)
-        .single();
+      const { data, error } = await supabase.withRetry(async (client) =>
+        client
+          .from('expenses')
+          .insert([{
+            ...expense,
+            user_id: user.id,
+            amount: Number(expense.amount)
+          }])
+          .select(`
+            *,
+            categories!fk_expenses_categories(name, color),
+            currencies!fk_expenses_currencies(code, name, symbol, decimal_places)
+          `)
+          .single()
+      );
 
       if (error) {
         console.error('Error adding expense:', error);
@@ -110,11 +114,13 @@ export const useExpenses = () => {
     if (!user || !id) return;
 
     try {
-      const { error } = await supabase
-        .from('expenses')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
+      const { error } = await supabase.withRetry(async (client) =>
+        client
+          .from('expenses')
+          .delete()
+          .eq('id', id)
+          .eq('user_id', user.id)
+      );
 
       if (error) {
         console.error('Error deleting expense:', error);

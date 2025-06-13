@@ -1,13 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { Eye, EyeOff, Mail, RefreshCw } from "lucide-react";
+import { AlertCircle, Eye, EyeOff, Mail, RefreshCw, Wifi, WifiOff } from "lucide-react";
 
 interface AuthError {
   message: string;
@@ -23,23 +24,68 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [confirmationSent, setConfirmationSent] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
+  const [networkError, setNetworkError] = useState(false);
   const { toast } = useToast();
+
+  // Add error handling for network/service issues
+  useEffect(() => {
+    const checkConnection = async () => {
+      try {
+        await fetch(import.meta.env.VITE_SUPABASE_URL);
+        setNetworkError(false);
+      } catch (error) {
+        setNetworkError(true);
+      }
+    };
+
+    const interval = setInterval(checkConnection, 30000); // Check every 30 seconds
+    checkConnection();
+
+    return () => clearInterval(interval);
+  }, []);
 
   // Redirect to home if user is already authenticated
   if (!loading && user) {
     return <Navigate to="/" replace />;
   }
 
+  const handleError = (error: any) => {
+    if (error instanceof TypeError && error.message === 'Failed to fetch') {
+      setNetworkError(true);
+      toast({
+        title: "Connection Error",
+        description: "Unable to connect to the service. Please check your internet connection.",
+        variant: "destructive",
+      });
+    } else if (error.message?.includes('has been blocked by CORS policy')) {
+      setNetworkError(true);
+      toast({
+        title: "Service Unavailable",
+        description: "The service is temporarily unavailable. Please try again later.",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Authentication failed",
+        description: error.message || "An unexpected error occurred",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthLoading(true);
+    setNetworkError(false);
 
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
+        const { error } = await supabase.withRetry(async (client) =>
+          client.auth.signInWithPassword({
+            email,
+            password,
+          })
+        );
 
         if (error) throw error;
 
@@ -48,15 +94,17 @@ const Auth = () => {
           description: "You have successfully signed in.",
         });
       } else {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              full_name: fullName,
+        const { error } = await supabase.withRetry(async (client) =>
+          client.auth.signUp({
+            email,
+            password,
+            options: {
+              data: {
+                full_name: fullName,
+              },
             },
-          },
-        });
+          })
+        );
 
         if (error) throw error;
 
@@ -68,11 +116,7 @@ const Auth = () => {
       }
     } catch (error: unknown) {
       const authError = error as AuthError;
-      toast({
-        title: "Authentication failed",
-        description: authError.message || "An unexpected error occurred",
-        variant: "destructive",
-      });
+      handleError(authError);
     } finally {
       setAuthLoading(false);
     }
@@ -80,11 +124,14 @@ const Auth = () => {
 
   const handleResendConfirmation = async () => {
     setResendLoading(true);
+    setNetworkError(false);
     try {
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email: email,
-      });
+      const { error } = await supabase.withRetry(async (client) =>
+        client.auth.resend({
+          type: 'signup',
+          email: email,
+        })
+      );
 
       if (error) throw error;
 
@@ -158,6 +205,16 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center p-4 transition-colors duration-300">
+      {networkError && (
+        <Alert variant="destructive" className="fixed top-4 left-4 right-4 max-w-md mx-auto">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Connection Error</AlertTitle>
+          <AlertDescription className="flex items-center gap-2">
+            <WifiOff className="h-4 w-4" />
+            Unable to connect to the service. Please check your connection.
+          </AlertDescription>
+        </Alert>
+      )}
       <Card className="w-full max-w-md bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="text-2xl font-bold text-center text-gray-900 dark:text-white">

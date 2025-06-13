@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/api-client';
 import { useAuth } from '@/hooks/useAuth';
 
 export interface Budget {
@@ -36,18 +36,20 @@ export const useBudgets = () => {
       setLoading(false);
       return;
     }
-    
+
     setLoading(true);
     try {
       // Fetch budgets with proper user filtering
-      const { data: budgetsData, error: budgetsError } = await supabase
-        .from('budgets')
-        .select(`
-          *,
-          categories!fk_budgets_categories(name, color),
-          currencies!fk_budgets_currencies(code, name, symbol, decimal_places)
-        `)
-        .eq('user_id', user.id);
+      const { data: budgetsData, error: budgetsError } = await supabase.withRetry(async (client) =>
+        client
+          .from('budgets')
+          .select(`
+            *,
+            categories!fk_budgets_categories(name, color),
+            currencies!fk_budgets_currencies(code, name, symbol, decimal_places)
+          `)
+          .eq('user_id', user.id)
+      );
 
       if (budgetsError) {
         console.error('Error fetching budgets:', budgetsError);
@@ -55,8 +57,9 @@ export const useBudgets = () => {
       }
 
       // Use the optimized function to get spent amounts
-      const { data: spentData, error: spentError } = await supabase
-        .rpc('get_budget_spent_amounts', { user_uuid: user.id });
+      const { data: spentData, error: spentError } = await supabase.withRetry(async (client) =>
+        client.rpc('get_budget_spent_amounts', { user_uuid: user.id })
+      );
 
       if (spentError) {
         console.error('Error fetching spent amounts:', spentError);
@@ -90,28 +93,30 @@ export const useBudgets = () => {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('budgets')
-        .upsert({
-          user_id: user.id,
-          category_id: categoryId,
-          amount: Number(amount),
-          currency_id: currencyId,
-          period: 'monthly',
-          updated_at: new Date().toISOString()
-        })
-        .select(`
-          *,
-          categories!fk_budgets_categories(name, color),
-          currencies!fk_budgets_currencies(code, name, symbol, decimal_places)
-        `)
-        .single();
+      const { data, error } = await supabase.withRetry(async (client) =>
+        client
+          .from('budgets')
+          .upsert({
+            user_id: user.id,
+            category_id: categoryId,
+            amount: Number(amount),
+            currency_id: currencyId,
+            period: 'monthly',
+            updated_at: new Date().toISOString()
+          })
+          .select(`
+            *,
+            categories!fk_budgets_categories(name, color),
+            currencies!fk_budgets_currencies(code, name, symbol, decimal_places)
+          `)
+          .single()
+      );
 
       if (error) {
         console.error('Error updating budget:', error);
         throw error;
       }
-      
+
       // Refetch to get updated spent amounts
       await fetchBudgets();
     } catch (error) {

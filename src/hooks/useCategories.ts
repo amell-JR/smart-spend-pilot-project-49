@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/api-client';
 import { useAuth } from '@/hooks/useAuth';
 
 export interface Category {
@@ -18,13 +18,15 @@ export const useCategories = () => {
 
   const fetchCategories = async () => {
     if (!user) return;
-    
+
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('categories')
-        .select('*')
-        .order('name');
+      const { data, error } = await supabase.withRetry(async (client) =>
+        client
+          .from('categories')
+          .select('*')
+          .order('name')
+      );
 
       if (error) throw error;
       setCategories(data || []);
