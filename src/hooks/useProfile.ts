@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/api-client';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
 export interface Profile {
@@ -29,19 +29,17 @@ export const useProfile = () => {
       setLoading(false);
       return;
     }
-
+    
     setLoading(true);
     try {
-      const { data, error } = await supabase.withRetry(async (client) =>
-        client
-          .from('profiles')
-          .select(`
-            *,
-            currencies!fk_profiles_currencies(code, name, symbol, decimal_places)
-          `)
-          .eq('id', user.id)
-          .single()
-      );
+      const { data, error } = await supabase
+        .from('profiles')
+        .select(`
+          *,
+          currencies!fk_profiles_currencies(code, name, symbol, decimal_places)
+        `)
+        .eq('id', user.id)
+        .single();
 
       if (error) {
         console.error('Error fetching profile:', error);
@@ -60,26 +58,24 @@ export const useProfile = () => {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase.withRetry(async (client) =>
-        client
-          .from('profiles')
-          .update({
-            ...updates,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', user.id)
-          .select(`
-            *,
-            currencies!fk_profiles_currencies(code, name, symbol, decimal_places)
-          `)
-          .single()
-      );
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id)
+        .select(`
+          *,
+          currencies!fk_profiles_currencies(code, name, symbol, decimal_places)
+        `)
+        .single();
 
       if (error) {
         console.error('Error updating profile:', error);
         throw error;
       }
-
+      
       setProfile(data);
       return data;
     } catch (error) {

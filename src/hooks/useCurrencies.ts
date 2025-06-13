@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/api-client';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface Currency {
   id: string;
@@ -18,12 +18,10 @@ export const useCurrencies = () => {
   const fetchCurrencies = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.withRetry(async (client) =>
-        client
-          .from('currencies')
-          .select('*')
-          .order('code')
-      );
+      const { data, error } = await supabase
+        .from('currencies')
+        .select('*')
+        .order('code');
 
       if (error) throw error;
       setCurrencies(data || []);

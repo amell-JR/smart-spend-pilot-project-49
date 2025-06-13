@@ -1,18 +1,13 @@
 import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/lib/api-client";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { AlertCircle, Eye, EyeOff, Mail, RefreshCw, Wifi, WifiOff } from "lucide-react";
-
-interface AuthError {
-  message: string;
-}
+import { Eye, EyeOff, Mail, RefreshCw } from "lucide-react";
 
 const Auth = () => {
   const { user, loading } = useAuth();
@@ -24,77 +19,23 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [confirmationSent, setConfirmationSent] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
-  const [networkError, setNetworkError] = useState(false);
   const { toast } = useToast();
-
-  // Simplified connection check that doesn't rely on direct fetch to Supabase URL
-  useEffect(() => {
-    const checkConnection = async () => {
-      try {
-        // Test connection by attempting to get session from Supabase
-        // This is a more reliable way to check if Supabase is accessible
-        await supabase.withRetry(async (client) => client.auth.getSession());
-        setNetworkError(false);
-      } catch (error) {
-        console.warn('Connection check failed:', error);
-        // Only set network error for actual network issues, not auth issues
-        if (error instanceof TypeError && error.message === 'Failed to fetch') {
-          setNetworkError(true);
-        }
-      }
-    };
-
-    // Check connection immediately
-    checkConnection();
-
-    // Set up periodic checks every 30 seconds
-    const interval = setInterval(checkConnection, 30000);
-
-    return () => clearInterval(interval);
-  }, []);
 
   // Redirect to home if user is already authenticated
   if (!loading && user) {
     return <Navigate to="/" replace />;
   }
 
-  const handleError = (error: any) => {
-    if (error instanceof TypeError && error.message === 'Failed to fetch') {
-      setNetworkError(true);
-      toast({
-        title: "Connection Error",
-        description: "Unable to connect to the service. Please check your internet connection.",
-        variant: "destructive",
-      });
-    } else if (error.message?.includes('has been blocked by CORS policy')) {
-      setNetworkError(true);
-      toast({
-        title: "Service Unavailable",
-        description: "The service is temporarily unavailable. Please try again later.",
-        variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "Authentication failed",
-        description: error.message || "An unexpected error occurred",
-        variant: "destructive",
-      });
-    }
-  };
-
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthLoading(true);
-    setNetworkError(false);
 
     try {
       if (isLogin) {
-        const { error } = await supabase.withRetry(async (client) =>
-          client.auth.signInWithPassword({
-            email,
-            password,
-          })
-        );
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
 
         if (error) throw error;
 
@@ -103,17 +44,15 @@ const Auth = () => {
           description: "You have successfully signed in.",
         });
       } else {
-        const { error } = await supabase.withRetry(async (client) =>
-          client.auth.signUp({
-            email,
-            password,
-            options: {
-              data: {
-                full_name: fullName,
-              },
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              full_name: fullName,
             },
-          })
-        );
+          },
+        });
 
         if (error) throw error;
 
@@ -123,9 +62,12 @@ const Auth = () => {
           description: "We've sent you a confirmation link to complete your registration.",
         });
       }
-    } catch (error: unknown) {
-      const authError = error as AuthError;
-      handleError(authError);
+    } catch (error: any) {
+      toast({
+        title: "Authentication failed",
+        description: error.message,
+        variant: "destructive",
+      });
     } finally {
       setAuthLoading(false);
     }
@@ -133,14 +75,11 @@ const Auth = () => {
 
   const handleResendConfirmation = async () => {
     setResendLoading(true);
-    setNetworkError(false);
     try {
-      const { error } = await supabase.withRetry(async (client) =>
-        client.auth.resend({
-          type: 'signup',
-          email: email,
-        })
-      );
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email,
+      });
 
       if (error) throw error;
 
@@ -148,11 +87,10 @@ const Auth = () => {
         title: "Email sent",
         description: "We've sent another confirmation email to your inbox.",
       });
-    } catch (error: unknown) {
-      const authError = error as AuthError;
+    } catch (error: any) {
       toast({
         title: "Failed to resend email",
-        description: authError.message || "An unexpected error occurred",
+        description: error.message,
         variant: "destructive",
       });
     } finally {
@@ -214,16 +152,6 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex items-center justify-center p-4 transition-colors duration-300">
-      {networkError && (
-        <Alert variant="destructive" className="fixed top-4 left-4 right-4 max-w-md mx-auto">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Connection Error</AlertTitle>
-          <AlertDescription className="flex items-center gap-2">
-            <WifiOff className="h-4 w-4" />
-            Unable to connect to the service. Please check your connection.
-          </AlertDescription>
-        </Alert>
-      )}
       <Card className="w-full max-w-md bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="text-2xl font-bold text-center text-gray-900 dark:text-white">

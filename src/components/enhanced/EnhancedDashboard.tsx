@@ -62,21 +62,12 @@ const COLORS = [
   '#ec4899', '#ef4444', '#f59e0b', '#10b981'
 ];
 
-const CustomTooltip = React.memo(({ active, payload, label, userCurrency }: {
-  active?: boolean;
-  payload?: Array<{
-    value: number;
-    name: string;
-    color: string;
-  }>;
-  label?: string;
-  userCurrency: { symbol: string; decimal_places: number };
-}) => {
+const CustomTooltip = React.memo(({ active, payload, label, userCurrency }: any) => {
   if (active && payload && payload.length) {
     return (
       <Card className="glass-card p-3 border shadow-lg">
         <p className="font-medium text-foreground">{label}</p>
-        {payload.map((entry, index) => (
+        {payload.map((entry: any, index: number) => (
           <p key={index} style={{ color: entry.color }} className="text-sm">
             {entry.name}: {formatCurrency(entry.value, userCurrency)}
           </p>
