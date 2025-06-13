@@ -27,19 +27,28 @@ const Auth = () => {
   const [networkError, setNetworkError] = useState(false);
   const { toast } = useToast();
 
-  // Add error handling for network/service issues
+  // Simplified connection check that doesn't rely on direct fetch to Supabase URL
   useEffect(() => {
     const checkConnection = async () => {
       try {
-        await fetch(import.meta.env.VITE_SUPABASE_URL);
+        // Test connection by attempting to get session from Supabase
+        // This is a more reliable way to check if Supabase is accessible
+        await supabase.withRetry(async (client) => client.auth.getSession());
         setNetworkError(false);
       } catch (error) {
-        setNetworkError(true);
+        console.warn('Connection check failed:', error);
+        // Only set network error for actual network issues, not auth issues
+        if (error instanceof TypeError && error.message === 'Failed to fetch') {
+          setNetworkError(true);
+        }
       }
     };
 
-    const interval = setInterval(checkConnection, 30000); // Check every 30 seconds
+    // Check connection immediately
     checkConnection();
+
+    // Set up periodic checks every 30 seconds
+    const interval = setInterval(checkConnection, 30000);
 
     return () => clearInterval(interval);
   }, []);
