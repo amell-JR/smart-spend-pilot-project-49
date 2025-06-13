@@ -13,48 +13,34 @@ export type Database = {
         Row: {
           amount: number
           category_id: string | null
-          created_at: string
+          created_at: string | null
           currency_id: string
           id: string
-          period: string
-          updated_at: string
+          period: string | null
+          updated_at: string | null
           user_id: string
         }
         Insert: {
           amount: number
           category_id?: string | null
-          created_at?: string
+          created_at?: string | null
           currency_id: string
           id?: string
-          period?: string
-          updated_at?: string
+          period?: string | null
+          updated_at?: string | null
           user_id: string
         }
         Update: {
           amount?: number
           category_id?: string | null
-          created_at?: string
+          created_at?: string | null
           currency_id?: string
           id?: string
-          period?: string
-          updated_at?: string
+          period?: string | null
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "budgets_category_id_fkey"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "categories"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "budgets_currency_id_fkey"
-            columns: ["currency_id"]
-            isOneToOne: false
-            referencedRelation: "currencies"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "fk_budgets_categories"
             columns: ["category_id"]
@@ -74,21 +60,21 @@ export type Database = {
       categories: {
         Row: {
           color: string | null
-          created_at: string
+          created_at: string | null
           id: string
           name: string
           user_id: string
         }
         Insert: {
           color?: string | null
-          created_at?: string
+          created_at?: string | null
           id?: string
           name: string
           user_id: string
         }
         Update: {
           color?: string | null
-          created_at?: string
+          created_at?: string | null
           id?: string
           name?: string
           user_id?: string
@@ -98,24 +84,24 @@ export type Database = {
       currencies: {
         Row: {
           code: string
-          created_at: string
-          decimal_places: number
+          created_at: string | null
+          decimal_places: number | null
           id: string
           name: string
           symbol: string
         }
         Insert: {
           code: string
-          created_at?: string
-          decimal_places?: number
+          created_at?: string | null
+          decimal_places?: number | null
           id?: string
           name: string
           symbol: string
         }
         Update: {
           code?: string
-          created_at?: string
-          decimal_places?: number
+          created_at?: string | null
+          decimal_places?: number | null
           id?: string
           name?: string
           symbol?: string
@@ -124,24 +110,24 @@ export type Database = {
       }
       exchange_rates: {
         Row: {
-          created_at: string
-          date: string
+          created_at: string | null
+          date: string | null
           from_currency_id: string
           id: string
           rate: number
           to_currency_id: string
         }
         Insert: {
-          created_at?: string
-          date?: string
+          created_at?: string | null
+          date?: string | null
           from_currency_id: string
           id?: string
           rate: number
           to_currency_id: string
         }
         Update: {
-          created_at?: string
-          date?: string
+          created_at?: string | null
+          date?: string | null
           from_currency_id?: string
           id?: string
           rate?: number
@@ -149,14 +135,14 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "exchange_rates_from_currency_id_fkey"
+            foreignKeyName: "fk_exchange_rates_from_currency"
             columns: ["from_currency_id"]
             isOneToOne: false
             referencedRelation: "currencies"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "exchange_rates_to_currency_id_fkey"
+            foreignKeyName: "fk_exchange_rates_to_currency"
             columns: ["to_currency_id"]
             isOneToOne: false
             referencedRelation: "currencies"
@@ -168,57 +154,43 @@ export type Database = {
         Row: {
           amount: number
           category_id: string | null
-          created_at: string
+          created_at: string | null
           currency_id: string
           date: string
           description: string
           id: string
           notes: string | null
           receipt_url: string | null
-          updated_at: string
+          updated_at: string | null
           user_id: string
         }
         Insert: {
           amount: number
           category_id?: string | null
-          created_at?: string
+          created_at?: string | null
           currency_id: string
           date: string
           description: string
           id?: string
           notes?: string | null
           receipt_url?: string | null
-          updated_at?: string
+          updated_at?: string | null
           user_id: string
         }
         Update: {
           amount?: number
           category_id?: string | null
-          created_at?: string
+          created_at?: string | null
           currency_id?: string
           date?: string
           description?: string
           id?: string
           notes?: string | null
           receipt_url?: string | null
-          updated_at?: string
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "expenses_category_id_fkey"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "categories"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "expenses_currency_id_fkey"
-            columns: ["currency_id"]
-            isOneToOne: false
-            referencedRelation: "currencies"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "fk_expenses_categories"
             columns: ["category_id"]
@@ -237,39 +209,32 @@ export type Database = {
       }
       profiles: {
         Row: {
-          created_at: string
+          created_at: string | null
           currency_id: string
           email: string | null
           full_name: string | null
           id: string
-          updated_at: string
+          updated_at: string | null
         }
         Insert: {
-          created_at?: string
+          created_at?: string | null
           currency_id: string
           email?: string | null
           full_name?: string | null
           id: string
-          updated_at?: string
+          updated_at?: string | null
         }
         Update: {
-          created_at?: string
+          created_at?: string | null
           currency_id?: string
           email?: string | null
           full_name?: string | null
           id?: string
-          updated_at?: string
+          updated_at?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "fk_profiles_currencies"
-            columns: ["currency_id"]
-            isOneToOne: false
-            referencedRelation: "currencies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "profiles_currency_id_fkey"
             columns: ["currency_id"]
             isOneToOne: false
             referencedRelation: "currencies"
@@ -287,6 +252,23 @@ export type Database = {
         Returns: {
           category_id: string
           spent_amount: number
+        }[]
+      }
+      get_category_spending_trend: {
+        Args: { user_uuid: string; months_back?: number }
+        Returns: {
+          month_year: string
+          category_name: string
+          total_spent: number
+        }[]
+      }
+      get_monthly_spending_summary: {
+        Args: { user_uuid: string; target_year?: number; target_month?: number }
+        Returns: {
+          category_name: string
+          category_color: string
+          total_spent: number
+          expense_count: number
         }[]
       }
     }
